@@ -1,0 +1,3 @@
+ApplyModel:
+  params:
+    model_name: gs://sergiy/models/blockmatch

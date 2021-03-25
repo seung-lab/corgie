@@ -1,0 +1,26 @@
+- Patchwise:
+    params:
+      patch_size: [1024, 1024, 1]
+      patch_overlap: [256, 256, 0]
+      combiner: avg
+    processor:
+      ApplyModel:
+        params:
+          model_name: gs://sergiy/models/blockmatch
+          model_params:
+            patch_size: 128
+            patch_step: 64
+            max_disp: 25
+            r_delta: 1.1
+- Patchwise:
+    params:
+      patch_size: [2048, 2048, 1]
+      patch_overlap: [256, 32, 0]
+      combiner: avg
+    processor:
+      ApplyModel:
+        params:
+          model_name: gs://sergiy/models/optimizer
+          model_params:
+            num_iter: 800
+            sm: 1.0e-2

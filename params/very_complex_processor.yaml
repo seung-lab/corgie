@@ -1,0 +1,65 @@
+# because it's a compute field task,
+# this will get called with the default
+# output key set to 'src_field'
+#
+- Patchwise:
+    params:
+      patch_size: [2048, 2048, 1]
+      patch_overlap: [256, 256, 0]
+      combiner: crop 
+    processor:
+      - ApplyModel:
+          output_key: src_encoding
+          input_keys: {src_image: src_image}
+          params:
+            model_name: gs://sergiy/models/ncc1
+      - ApplyModel:
+          output_key: tgt_encoding
+          input_keys: {src_image: tgt_image}
+          params:
+            model_name: gs://sergiy/models/ncc1
+- Patchwise:
+    params:
+      patch_size: [1024, 1024, 1]
+      patch_overlap: [256, 256, 0]
+      combiner: avg
+    processor: 
+      ApplyModel:
+        output_key: src_field
+        input_keys: {src_image: src_encoding, tgt_image: tgt_encoding}
+        params:
+          model_name: gs://sergiy/models/blockmatch
+          model_params:
+            patch_size: 128
+            patch_step: 64
+            max_disp: 25
+            r_delta: 1.1
+- Patchwise:
+    params:
+      patch_size: [2048, 2048, 1]
+      patch_overlap: [256, 256, 0]
+      combiner: crop 
+    processor:
+      - ApplyModel:
+          output_key: src_encoding
+          input_keys: {src_image: src_image}
+          params:
+            model_name: gs://sergiy/models/ncc2
+      - ApplyModel:
+          output_key: tgt_encoding
+          input_keys: {src_image: tgt_image}
+          params:
+            model_name: gs://sergiy/models/ncc2
+- Patchwise:
+    params:
+      patch_size: [2048, 2048, 1]
+      patch_overlap: [256, 32, 0]
+      combiner: avg
+    processor: 
+      ApplyModel:
+        input_keys: {src_image: src_encoding, tgt_image: tgt_encoding}
+        params:
+          model_name: gs://sergiy/models/optimizer
+          model_params:
+            num_iter: 800 
+            sm: 1.0e-2 

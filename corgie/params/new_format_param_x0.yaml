@@ -1,0 +1,28 @@
+bbox:
+  start: [0, 0, 17371]
+  end:   [491520, 491520, 17380]
+  mip: 0
+max_mip: 9
+restart: null
+skip_list: [17491, 17891]
+dst:
+  path: "gs://seunglab_minnie_phase3/alignment/skaamt/test_x0"
+stages: 
+  - model_name: "sergiy_blockmatch_clean"
+    src_img:
+      path: "gs://seunglab_minnie_phase3/alignment/unaligned/ncc/ncc_m8"
+      dtype: "float32"
+      mip: 8
+    block_size: 100
+    chunk_size: 2048
+    compute_field_pad: 16
+    render_pad: 16
+    vvote: 5 
+    seethrough: False 
+    masks:
+      fold_mask: null
+        mip: null
+        val: null
+        path: null
+        dtype: null
+
