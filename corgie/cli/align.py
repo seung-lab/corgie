@@ -261,12 +261,17 @@ def align(ctx,
         block_bcube = bcube.copy()
         block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
 
+        # align blockB to blockA
+        final_field = f'field{suffix}'
         if i % 2 == 0:
             blockA = even_stack
-            blockB = odd_stack
+            blockB = deepcopy(src_stack)
+            fieldB = odd_stack[final_field]
         else:
-            blockB = even_stack
             blockA = odd_stack
+            blockB = deepcopy(src_stack)
+            fieldB = even_stack[final_field]
+        blockB.add_layer(fieldB)
 
         align_block_job_forv = AlignBlockJob(src_stack=blockB,
                                     tgt_stack=blockB,
@@ -283,6 +288,40 @@ def align(ctx,
 
     scheduler.execute_until_completion()
     corgie_logger.debug("Done!")
+
+    if block_overlap > 1:
+        corgie_logger.debug("Voting on overlaps")
+        for i in range(len(blocks)):
+            block = overlap_blocks[i]
+
+            block_bcube = bcube.copy()
+            block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
+
+            if i % 2 == 0:
+                blockA = even_stack
+                blockB = odd_stack
+            else:
+                blockB = even_stack
+                blockA = odd_stack
+
+            align_block_job_forv = AlignBlockJob(src_stack=blockB,
+                                        tgt_stack=blockB,
+                                        dst_stack=blockA,
+                                        bcube=block_bcube,
+                                        render_method=render_method,
+                                        cf_method=cf_method,
+                                        vote_dist=vote_dist,
+                                        seethrough_method=seethrough_method,
+                                        suffix=suffix,
+                                        copy_start=False,
+                                        backward=False)
+            scheduler.register_job(align_block_job_forv, job_name=f"Overlap Align {block} {block_bcube}")
+
+        scheduler.execute_until_completion()
+        corgie_logger.debug("Done!")
+
+
+
     # Generate stitching fields
 
     result_report = (
