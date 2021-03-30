@@ -82,34 +82,32 @@ from corgie.cli.compare_sections import CompareSectionsJob
 @corgie_option("--block_overlap", nargs=1, type=int, default=3)
 @corgie_option("--vote_dist", nargs=1, type=int, default=1)
 @click.pass_context
-def align(
-    ctx,
-    src_layer_spec,
-    tgt_layer_spec,
-    dst_folder,
-    render_pad,
-    render_chunk_xy,
-    processor_spec,
-    pad,
-    crop,
-    processor_mip,
-    chunk_xy,
-    start_coord,
-    end_coord,
-    coord_mip,
-    bad_starter_path,
-    block_size,
-    block_overlap,
-    vote_dist,
-    blend_xy,
-    force_chunk_xy,
-    suffix,
-    copy_start,
-    seethrough_spec,
-    seethrough_spec_mip,
-):
+def align(ctx,
+          src_layer_spec,
+          tgt_layer_spec,
+          dst_folder,
+          render_pad,
+          render_chunk_xy,
+          processor_spec,
+          pad,
+          crop,
+          processor_mip,
+          chunk_xy,
+          start_coord,
+          end_coord,
+          coord_mip,
+          bad_starter_path,
+          block_size,
+          block_overlap,
+          vote_dist,
+          blend_xy,
+          force_chunk_xy,
+          suffix,
+          copy_start,
+          seethrough_spec,
+          seethrough_spec_mip):
 
-    scheduler = ctx.obj["scheduler"]
+    scheduler = ctx.obj['scheduler']
 
     if suffix is None:
         suffix = "_aligned"
