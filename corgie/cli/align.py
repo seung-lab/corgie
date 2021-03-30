@@ -173,6 +173,7 @@ def align(
     bad_starter_sections = []
 
     blocks = []
+    overlap_blocks = []
     z = bcube.z_range()[0]
     while z < bcube.z_range()[-1]:
         block_start = z
@@ -185,7 +186,10 @@ def align(
 
         block = Block(block_start, block_end + block_overlap)
         blocks.append(block)
+        overlap_block = Block(block_start, block_start + block_overlap)
+        overlap_blocks.append(overlap_block)
         z = block_end
+    overlap_blocks = overlap_blocks[1:] # num_overlaps = num_blocks - 1
     corgie_logger.debug("Done!")
 
     render_method = helpers.PartialSpecification(
@@ -252,22 +256,36 @@ def align(
     scheduler.execute_until_completion()
     corgie_logger.debug("Done!")
 
-    corgie_logger.debug("Stitching blocks...")
-    # TODO
-    # stitch_blocks_job = StitchBlockJob(
-    #    blocks=blocks,
-    #    src_stack=src_stack,
-    #    dst_stack=dst_stack,
-    #    bcube=bcube,
-    #    suffix=suffix,
-    #    render_method=render_method,
-    #    cf_method=cf_method
-    # )
+    corgie_logger.debug("Aligning overlaps...")
+    for i in range(len(blocks)):
+        block = overlap_blocks[i]
 
-    # scheduler.register_job(stitch_blocks_job, job_name=f"Stitch blocks {bcube}")
-    # scheduler.execute_until_completion()
+        block_bcube = bcube.copy()
+        block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
 
+        if i % 2 == 0:
+            blockA = even_stack
+            blockB = odd_stack
+        else:
+            blockB = even_stack
+            blockA = odd_stack
+
+        align_block_job_forv = AlignBlockJob(src_stack=blockB,
+                                    tgt_stack=blockB,
+                                    dst_stack=blockA,
+                                    bcube=block_bcube,
+                                    render_method=render_method,
+                                    cf_method=cf_method,
+                                    vote_dist=vote_dist,
+                                    seethrough_method=seethrough_method,
+                                    suffix=suffix,
+                                    copy_start=False,
+                                    backward=False)
+        scheduler.register_job(align_block_job_forv, job_name=f"Overlap Align {block} {block_bcube}")
+
+    scheduler.execute_until_completion()
     corgie_logger.debug("Done!")
+    # Generate stitching fields
 
     result_report = (
         f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
