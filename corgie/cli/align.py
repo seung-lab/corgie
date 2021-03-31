@@ -22,6 +22,7 @@ from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.compare_sections import CompareSectionsJob
+from corgie.cli.vote import VoteOverZJob
 
 
 @click.command()
@@ -291,31 +292,31 @@ def align(ctx,
 
     if block_overlap > 1:
         corgie_logger.debug("Voting on overlaps")
+        field_dir = f'stitching_field'
+        stitching_field = dst_stack.create_sublayer(field_dir,
+                                            layer_type='field',
+                                            overwrite=True)
         for i in range(len(blocks)):
             block = overlap_blocks[i]
 
             block_bcube = bcube.copy()
             block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
 
+            final_field = f'field{suffix}'
             if i % 2 == 0:
-                blockA = even_stack
-                blockB = odd_stack
+                fieldA = even_stack[final_field]
             else:
-                blockB = even_stack
-                blockA = odd_stack
+                fieldA = odd_stack[final_field]
+            z_list = range(*block_bcube.z_range)
 
-            align_block_job_forv = AlignBlockJob(src_stack=blockB,
-                                        tgt_stack=blockB,
-                                        dst_stack=blockA,
+            align_block_job_forv = VoteOverZJob(
+                                        input_field=fieldA,
+                                        output_field=stitching_field,
+                                        chunk_xy=chunk_xy,
                                         bcube=block_bcube,
-                                        render_method=render_method,
-                                        cf_method=cf_method,
-                                        vote_dist=vote_dist,
-                                        seethrough_method=seethrough_method,
-                                        suffix=suffix,
-                                        copy_start=False,
-                                        backward=False)
-            scheduler.register_job(align_block_job_forv, job_name=f"Overlap Align {block} {block_bcube}")
+                                        z_list=z_list,
+                                        mip=processor_mip)
+            scheduler.register_job(align_block_job_forv, job_name=f"Overlap Vote {block} {block_bcube}")
 
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
