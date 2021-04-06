@@ -36,6 +36,16 @@ class Translation:
     x: float
     y: float
 
+    def __add__(self, T):
+        return Translation(self.x + T.x, self.y + T.y)
+
+    def __sub__(self, T):
+        return Translation(self.x - T.x, self.y - T.y)
+    
+    def to_tensor(self):
+        return torch.tensor([[[[self.x]],[[self.y]]]])
+
+
 def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
     if field is None:
         result = Translation(0, 0)
