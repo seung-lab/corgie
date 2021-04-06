@@ -302,7 +302,6 @@ def render(
         chunk_z=chunk_z,
         render_masks=render_masks,
         blackout_masks=blackout_masks,
-        seethrough=seethrough,
     )
 
     # create scheduler and execute the job
