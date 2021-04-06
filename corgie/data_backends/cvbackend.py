@@ -239,6 +239,11 @@ class CVFieldLayer(CVLayerBase, layers.FieldLayer):
                     )
         self.backend_dtype = backend_dtype
 
+    def read_backend(self, bcube, mip, transpose=True, timestamp=None):
+        data = super().read_backend(bcube, mip, transpose, timestamp)
+        if self.backend_dtype == 'int16':
+            data = np.float32(data) / 4
+        return data
 
 @CVDataBackend.register_layer_type_backend("mask")
 class CVMaskLayer(CVLayerBase, layers.MaskLayer):
