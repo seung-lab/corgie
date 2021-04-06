@@ -174,6 +174,8 @@ class SegmentationLayer(VolumetricLayer):
 
 @register_layer_type("field")
 class FieldLayer(VolumetricLayer):
+    """Residuals are specified at a relative resolution based on MIP
+    """
     def __init__(self, *args, num_channels=2, **kwargs):
         if num_channels != 2:
             raise exceptions.ArgumentError("Field layer 'num_channels'",
@@ -280,3 +282,49 @@ class SectionValueLayer(VolumetricLayer):
 
     def get_default_data_type(self):
         return 'float32'
+
+@register_layer_type("fixed_field")
+class FixedFieldLayer(FieldLayer):
+    """Residuals are specified at a fixed resolution, regardless of MIP.
+    For example, a field at MIP2 may have residuals specified in MIP0 
+    pixels.
+
+    NOTE: It is not recommended to create new fields based on this
+    class. This class was intended to support existing fields created
+    by legacy code. 
+    """
+    def __init__(self, *args, fixed_mip=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fixed_mip = fixed_mip
+
+    def get_downsampler(self):
+        def downsampler(data_tens):
+
+            downs_data = torch.nn.functional.interpolate(data_tens.float(),
+                                mode='bilinear',
+                                scale_factor=1/2,
+                                align_corners=False,
+                                **get_extra_interpolate_parameters())
+            return downs_data
+
+        return downsampler
+
+    def get_upsampler(self):
+        def upsampler(data_tens):
+            ups_data = torch.nn.functional.interpolate(data_tens.float(),
+                                mode='bilinear',
+                                scale_factor=2.0,
+                                align_corners=False,
+                                **get_extra_interpolate_parameters())
+            return ups_data
+
+        return upsampler
+
+    def read(self, bcube, mip, **kwargs):
+        return super().read(bcube, mip, **kwargs) / (2**(mip-self.fixed_mip))
+
+    # def write(self, data_tens, bcube, mip, **kwargs):
+    #     super().write(data_tens=data_tens*(2**self.fixed_mip), 
+    #                   bcube=indexed_bcube, 
+    #                   mip=mip, 
+    #                   **kwargs)
