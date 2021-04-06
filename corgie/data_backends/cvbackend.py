@@ -250,3 +250,8 @@ class CVMaskLayer(CVLayerBase, layers.MaskLayer):
 class CVSectionValueLayer(CVLayerBase, layers.SectionValueLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
+
+@CVDataBackend.register_layer_type_backend("fixed_field")
+class CVSectionValueLayer(CVFieldLayer, layers.FixedFieldLayer):
+    def __init__(self, *kargs, **kwargs):
+        super().__init__(*kargs, **kwargs)
