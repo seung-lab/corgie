@@ -1,4 +1,5 @@
 from corgie.stack import Stack
+from corgie.log import logger as corgie_logger
 from corgie.argparsers import create_layer_from_dict, create_layer_from_spec
 import json
 
@@ -33,6 +34,7 @@ def spec_to_layer_dict_readonly(layer_specs):
     """
     layers = {}
     for k, s in layer_specs.items():
+        corgie_logger.info(f'Creating layer no. {k}')
         layers[k] = create_layer_from_dict(s, readonly=True)
     return layers
 
