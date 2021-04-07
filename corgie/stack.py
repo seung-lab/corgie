@@ -7,8 +7,10 @@
 import six
 import os
 import copy
+import torch
 
 from corgie import exceptions, helpers
+from corgie.log import logger as corgie_logger
 from corgie.layers import str_to_layer_type
 
 class StackBase:
@@ -36,6 +38,9 @@ class StackBase:
 
     def __getitem__(self, m):
         return self.layers[m]
+
+    def __len__(self):
+        return len(self.layers)
 
     def read_data_dict(self, **index):
         result = {}
@@ -173,3 +178,72 @@ def create_stack_from_reference(reference_stack, folder, name, types=None, suffi
                 reference=l, dtype=l.get_data_type(), **kwargs)
     return result
 
+class FieldSet():
+    """Collection of Field layers to handle composition
+    """
+    def __init__(self, layers=[]):
+        self.layers = layers
+
+    def append(self, layer):
+        self.layers.append(layer)
+
+    def get_field(self, layer, bcube, mip):
+        """Get field, adjusted by distance
+
+        Args:
+            layer (Layer)
+            bcube (BoundingCube)
+            mip (int)
+            # dist (float)
+        
+        Returns:
+            TorchField # adjusted (blurred/attenuated) by distance
+        """
+        # TODO: add ability to get blurred field using trilinear interpolation
+        # c = min(max(dist / self.decay_dist, 0.), 1.)
+        corgie_logger.debug(f'get_field')
+        corgie_logger.debug(f'\tlayer={layer}')
+        corgie_logger.debug(f'\tbcube={bcube}')
+        corgie_logger.debug(f'\tmip={mip}')
+        f = layer.read(bcube=bcube, mip=mip).field_()
+        return f # * c
+
+    def read(self, bcube, z_list, mip):
+        """Compute composition of fields indexed by bcube & z_list
+
+        This takes a list of fields, [f_0, f_1, ..., f_n],
+        and composes them to get
+        f_0 ⚬ f_1 ⚬ ... ⚬ f_n ~= f_0(f_1(...(f_n)))
+        """
+        if isinstance(z_list, int):
+            z_list = [z_list] * len(self.layers)
+        assert(len(z_list) == len(self.layers))
+
+        src_z = z_list[-1]
+        z = z_list[0]
+        layer = self.layers[0]
+        abcube = bcube.reset_coords(zs=z, ze=z+1, in_place=False)
+        agg_field = self.get_field(layer=layer,
+                                    bcube=abcube,
+                                    mip=mip)
+                                    # dist=src_z - z)
+        for z, layer in zip(z_list[1:], self.layers[1:]):
+            trans = helpers.percentile_trans_adjuster(agg_field)
+            trans.x = (trans.x // (2**mip)) * 2**mip
+            trans.y = (trans.y // (2**mip)) * 2**mip
+            corgie_logger.debug(f'{trans}')
+            abcube = abcube.reset_coords(zs=z, ze=z+1, in_place=True)
+            abcube = abcube.translate(x_offset=int(trans.x),
+                                      y_offset=int(trans.y))
+            trans = trans.to_tensor()
+            agg_field -= trans
+            agg_field = agg_field.from_pixels()
+            this_field = self.get_field(layer=layer,
+                                        bcube=abcube,
+                                        mip=mip)
+                                        # dist=src_z - z)
+            this_field = this_field.from_pixels()
+            agg_field = agg_field(this_field)
+            agg_field = agg_field.pixels()
+            agg_field += trans
+        return agg_field
