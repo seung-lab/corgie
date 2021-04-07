@@ -229,12 +229,11 @@ class FieldSet():
                                     # dist=src_z - z)
         for z, layer in zip(z_list[1:], self.layers[1:]):
             trans = helpers.percentile_trans_adjuster(agg_field)
-            trans.x = (trans.x // (2**mip)) * 2**mip
-            trans.y = (trans.y // (2**mip)) * 2**mip
             corgie_logger.debug(f'{trans}')
             abcube = abcube.reset_coords(zs=z, ze=z+1, in_place=True)
-            abcube = abcube.translate(x_offset=int(trans.x),
-                                      y_offset=int(trans.y))
+            abcube = abcube.translate(x_offset=trans.y,
+                                      y_offset=trans.x,
+                                      mip=mip)
             trans = trans.to_tensor()
             agg_field -= trans
             agg_field = agg_field.from_pixels()
