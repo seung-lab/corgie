@@ -113,15 +113,15 @@ class BoundingCube:
 
     def x_range(self, mip):
         scale_factor = 2**mip
+        xl = int(round((self.m0_x[1] - self.m0_x[0]) / scale_factor))
         xs = floor(self.m0_x[0] / scale_factor)
-        xe = ceil(self.m0_x[1] / scale_factor)
-        return [xs, xe]
+        return [xs, xs+xl]
 
     def y_range(self, mip):
         scale_factor = 2**mip
+        yl = int(round((self.m0_y[1] - self.m0_y[0]) / scale_factor))
         ys = floor(self.m0_y[0] / scale_factor)
-        ye = ceil(self.m0_y[1] / scale_factor)
-        return [ys, ye]
+        return [ys, ys+yl]
 
     def z_range(self):
         return list(copy.deepcopy(self.z))
