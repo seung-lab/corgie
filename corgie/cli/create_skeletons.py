@@ -310,4 +310,3 @@ def create_skeletons(
     scheduler.execute_until_completion()
     result_report = f"Skeletonized {str(seg_layer)}. "
     corgie_logger.info(result_report)
-

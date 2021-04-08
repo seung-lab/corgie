@@ -336,7 +336,7 @@ class TransformSkeletonsJob(scheduling.Job):
     nargs=1,
     type=bool,
     default=False,
-    help="Set to True if field values are stored in MIP 0 pixels even though the field is not itself MIP 0."
+    help="Set to True if field values are stored in MIP 0 pixels even though the field is not itself MIP 0.",
 )
 @click.pass_context
 def transform_skeletons(
@@ -397,4 +397,3 @@ def transform_skeletons(
     scheduler.execute_until_completion()
     result_report = f"Transformed skeletons stored at {dst_folder}. "
     corgie_logger.info(result_report)
-

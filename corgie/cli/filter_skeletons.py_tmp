@@ -47,7 +47,7 @@ class GenerateNewSkeletonTask(scheduling.Task):
             if i + 1 == len(index_points):
                 end_index = number_vertices
             else:
-                end_index = index_points[i+1]
+                end_index = index_points[i + 1]
             array_filenames.append(
                 f"intermediary_arrays/{self.skeleton_id_str}:{start_index}-{end_index}"
             )
@@ -130,7 +130,7 @@ class TransformSkeletonVerticesTask(scheduling.Task):
             )
             field_data = self.vector_field_layer.read(
                 bcube=bcube, mip=self.field_mip
-            ).permute(2,3,0,1)
+            ).permute(2, 3, 0, 1)
             current_batch_vertices_to_mip = current_batch_vertices / field_resolution
             bcube_minpt = bcube.minpt(self.field_mip)
             field_indices = current_batch_vertices_to_mip.astype(np.int) - bcube_minpt
@@ -168,8 +168,7 @@ class TransformSkeletonVerticesTask(scheduling.Task):
 
 def get_skeleton_vert_neighbor_ids(sk, vert_id):
     vert_edges = np.where(
-        np.isin(sk.edges[:, 0], vert_id) + \
-        np.isin(sk.edges[:, 1], vert_id)\
+        np.isin(sk.edges[:, 0], vert_id) + np.isin(sk.edges[:, 1], vert_id)
     )[0]
 
     neighbors = sk.edges[vert_edges[-1]].flatten()
@@ -210,11 +209,11 @@ class FilterSkeletonsJob(scheduling.Job):
             while True:
                 verts = sk.vertices
                 vert_zs = verts[:, 2].copy()
-                vert_zs /= 40 #hack
+                vert_zs /= 40  # hack
                 vert_zs = vert_zs.astype(np.int32)
 
                 bad_verts = np.where(np.isin(vert_zs, bad_sections))[0]
-                print (bad_verts.size)
+                print(bad_verts.size)
                 if bad_verts.size == 0:
                     break
 
@@ -225,49 +224,50 @@ class FilterSkeletonsJob(scheduling.Job):
                     neighbors = get_skeleton_vert_neighbor_ids(sk, bv)
 
                     # filter out other bad vertices
-                    print (bv, neighbors)
+                    print(bv, neighbors)
                     bad_index = np.where(np.isin(neighbors, bad_verts))
                     neighbors = np.delete(neighbors, bad_index)
-                    print (bv, neighbors)
+                    print(bv, neighbors)
 
-                    assert (np.isin(neighbors.flatten(), bad_verts).sum() == 0)
+                    assert np.isin(neighbors.flatten(), bad_verts).sum() == 0
 
                     # if there's a good neighbor, reasign all the endpoints to it
                     # else wait until the next round
                     if len(neighbors) != 0:
                         replacement = neighbors[0]
-                        assert (replacement not in bad_verts)
+                        assert replacement not in bad_verts
                         ed = np.expand_dims(sk.edges, -1)
                         ed[np.where(ed == bv)] = replacement
                         sk.edges = ed.squeeze(-1)
                         # this leaves self-edges
-                        print ("Deleted!")
+                        print("Deleted!")
                         deleted += 1
 
-                #old_v_count = sk.vertices.shape[0]
-                #old_e_count = sk.edges.shape[0]
+                # old_v_count = sk.vertices.shape[0]
+                # old_e_count = sk.edges.shape[0]
                 # this removes self-edges
                 sk = sk.consolidate()
                 new_v_count = sk.vertices.shape[0]
                 new_e_count = sk.edges.shape[0]
-                #print (deleted)
-                #print ("Verts: ", new_v_count, old_v_count)
-                #print ("Edges: ", new_e_count, old_e_count)
-                #if new_v_count + deleted != old_v_count:
+                # print (deleted)
+                # print ("Verts: ", new_v_count, old_v_count)
+                # print ("Edges: ", new_e_count, old_e_count)
+                # if new_v_count + deleted != old_v_count:
                 #    print ("SOmehting is wrong with the count")
                 #    import ipdb; ipdb.set_trace()
 
-                #bad_count = 0
-                #for v in range(sk.vertices.shape[0]):
+                # bad_count = 0
+                # for v in range(sk.vertices.shape[0]):
                 #    z = int(sk.vertices[v][-1] / 40)
                 #    if z in bad_sections:
                 #        bad_count += 1
-        print (length_before, sk.cable_length())
-        import ipdb; ipdb.set_trace()
+        print(length_before, sk.cable_length())
+        import ipdb
 
-                #print (len(bad_verts))
-                #print (sk.vertices.shape)
+        ipdb.set_trace()
 
+        # print (len(bad_verts))
+        # print (sk.vertices.shape)
 
     def get_skeletons(self, folder):
         skeleton_filenames = [str(skeleton_id) for skeleton_id in self.skeleton_ids]
@@ -367,4 +367,3 @@ def filter_skeletons(
     scheduler.execute_until_completion()
     result_report = f"Transformed skeletons stored at {dst_folder}. "
     corgie_logger.info(result_report)
-
