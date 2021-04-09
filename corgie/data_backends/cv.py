@@ -256,6 +256,6 @@ class CVSectionValueLayer(CVLayerBase, layers.SectionValueLayer):
         super().__init__(*kargs, **kwargs)
 
 @cv_backend.register_layer_type_backend("fixed_field")
-class CVSectionValueLayer(CVFieldLayer, layers.FixedFieldLayer):
+class CVFixedFieldLayer(CVFieldLayer, layers.FixedFieldLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
