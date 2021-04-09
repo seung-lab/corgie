@@ -9,13 +9,14 @@ from corgie import exceptions
 from corgie.log import logger as corgie_logger
 
 from corgie.data_backends.base import DataBackendBase, BaseLayerBackend, \
-        register_backend
+        register_backend, str_to_backend
+
 
 @register_backend("json")
 class JSONDataBackend(DataBackendBase):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
-
+json_backend = str_to_backend("json")
 
 class JSONLayerBase(BaseLayerBackend):
     """A directory with one text file per section
@@ -39,7 +40,7 @@ class JSONLayerBase(BaseLayerBackend):
 
         return self.backend.create_layer(path=path, reference=self,
                 layer_type=layer_type, **kwargs)
-    
+
     def get_filename(self, z):
         return f'{z:06d}'
 
@@ -59,7 +60,7 @@ class JSONLayerBase(BaseLayerBackend):
         filepaths = [self.get_filename(z) for z in z_range]
         self.cf.put_jsons(zip(filepaths, data), cache_control='no-cache')
 
-@JSONDataBackend.register_layer_type_backend("section_value")
+@json_backend.register_layer_type_backend("section_value")
 class JSONSectionValueLayer(JSONLayerBase, layers.SectionValueLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)

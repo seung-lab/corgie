@@ -70,8 +70,7 @@ def create_layer_from_dict(param_dict, reference=None, caller_name=None,
         raise exceptions.ArgumentError("layer_type",
                 f'must be of type in {allowed_types}')
 
-    backend = str_to_backend(data_backend)()
-
+    backend = str_to_backend(data_backend)
     layer = backend.create_layer(path=layer_path, layer_type=layer_type,
             reference=reference, layer_args=layer_args,
             **kwargs)

@@ -13,13 +13,13 @@ from corgie.log import logger as corgie_logger
 
 from corgie.mipless_cloudvolume import MiplessCloudVolume
 from corgie.data_backends.base import DataBackendBase, BaseLayerBackend, \
-        register_backend
+        register_backend, str_to_backend
 
 @register_backend("cv")
 class CVDataBackend(DataBackendBase):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
-
+cv_backend = str_to_backend("cv")
 
 class CVLayerBase(BaseLayerBackend):
     def __init__(self, path, backend, reference=None, force_chunk_xy=None,
@@ -211,14 +211,13 @@ class CVLayerBase(BaseLayerBackend):
                 mip, **kwargs)
         return chunks
 
-
-@CVDataBackend.register_layer_type_backend("img")
+@cv_backend.register_layer_type_backend("img")
 class CVImgLayer(CVLayerBase, layers.ImgLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
 
 
-@CVDataBackend.register_layer_type_backend("segmentation")
+@cv_backend.register_layer_type_backend("segmentation")
 class CVSegmentationLayer(CVLayerBase, layers.SegmentationLayer):
     def __init__(self, *kargs, **kwargs):
         if 'graphene:' in kwargs['path']:
@@ -226,7 +225,7 @@ class CVSegmentationLayer(CVLayerBase, layers.SegmentationLayer):
         super().__init__(*kargs, **kwargs)
 
 
-@CVDataBackend.register_layer_type_backend("field")
+@cv_backend.register_layer_type_backend("field")
 class CVFieldLayer(CVLayerBase, layers.FieldLayer):
     supported_backend_dtypes = ['float32', 'int16']
     def __init__(self, backend_dtype='float32', **kwargs):
@@ -245,18 +244,18 @@ class CVFieldLayer(CVLayerBase, layers.FieldLayer):
             data = np.float32(data) / 4
         return data
 
-@CVDataBackend.register_layer_type_backend("mask")
+@cv_backend.register_layer_type_backend("mask")
 class CVMaskLayer(CVLayerBase, layers.MaskLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
 
 
-@CVDataBackend.register_layer_type_backend("section_value")
+@cv_backend.register_layer_type_backend("section_value")
 class CVSectionValueLayer(CVLayerBase, layers.SectionValueLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
 
-@CVDataBackend.register_layer_type_backend("fixed_field")
-class CVSectionValueLayer(CVFieldLayer, layers.FixedFieldLayer):
+@cv_backend.register_layer_type_backend("fixed_field")
+class CVFixedFieldLayer(CVFieldLayer, layers.FixedFieldLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
