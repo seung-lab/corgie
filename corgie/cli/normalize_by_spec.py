@@ -1,17 +1,11 @@
 import os
 import click
-from copy import deepcopy
 
-from corgie import scheduling
-from corgie import helpers, stack
 from corgie.log import logger as corgie_logger
-from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
 from corgie.boundingcube import get_bcube_from_coords
-from corgie import argparsers
 from corgie.cli.compute_stats import ComputeStatsJob
 from corgie.argparsers import (
     LAYER_HELP_STR,
-    create_layer_from_spec,
     corgie_optgroup,
     corgie_option,
     create_stack_from_spec,
@@ -99,10 +93,6 @@ def normalize_by_spec(
     corgie_logger.debug("Setting up layers...")
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
 
-    # dst_stack = stack.create_stack_from_reference(reference_stack=src_stack,
-    #         folder=dst_folder, name="dst", types=["img"], readonly=False,
-    #         suffix=suffix, overwrite=True)
-
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     img_layers = src_stack.get_layers_of_type("img")
@@ -161,7 +151,7 @@ def normalize_by_spec(
                     normalize_job = NormalizeJob(
                         src_layer=l,
                         mask_layers=mask_layers,
-                        dst_layer=deepcopy(dst_layer),
+                        dst_layer=dst_layer,
                         mean_layer=mean_layer,
                         var_layer=var_layer,
                         stats_mip=stats_mip,

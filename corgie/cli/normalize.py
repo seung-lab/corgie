@@ -1,17 +1,13 @@
 import os
 import click
-from copy import deepcopy
 
 from corgie import scheduling
 from corgie import helpers, stack
 from corgie.log import logger as corgie_logger
-from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
 from corgie.boundingcube import get_bcube_from_coords
-from corgie import argparsers
 from corgie.cli.compute_stats import ComputeStatsJob
 from corgie.argparsers import (
     LAYER_HELP_STR,
-    create_layer_from_spec,
     corgie_optgroup,
     corgie_option,
     create_stack_from_spec,
@@ -202,9 +198,6 @@ def normalize(
     assert len(field_layers) == 0
 
     for l in img_layers:
-        import pdb
-
-        pdb.set_trace()
         mean_layer = l.get_sublayer(
             name=f"mean_{l.name}{suffix}",
             path=os.path.join(dst_folder, f"mean_{l.name}{suffix}"),
@@ -248,7 +241,7 @@ def normalize(
             normalize_job = NormalizeJob(
                 src_layer=l,
                 mask_layers=mask_layers,
-                dst_layer=deepcopy(dst_layer),
+                dst_layer=dst_layer,
                 mean_layer=mean_layer,
                 var_layer=var_layer,
                 stats_mip=stats_mip,
