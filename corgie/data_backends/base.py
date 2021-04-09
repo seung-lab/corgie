@@ -22,16 +22,16 @@ def get_data_backends():
 def register_backend(name):
     def register_backend_fn(cls):
         global STR_TO_BACKEND_DICT
-        STR_TO_BACKEND_DICT[name] = cls
+        STR_TO_BACKEND_DICT[name] = cls()
         return cls
     return register_backend_fn
 
 
 class DataBackendBase:
-    layer_constr_dict = {n: None for n in get_layer_types()}
     default_device = None
 
     def __init__(self, *kargs, device=None, **kwargs):
+        self.layer_constr_dict = {n: None for n in get_layer_types()}
         if device is not None:
             self.device = device
         else:
@@ -58,13 +58,12 @@ class DataBackendBase:
         corgie_logger.debug("Done")
         return layer
 
-    @classmethod
-    def register_layer_type_backend(cls, layer_type_name):
+    def register_layer_type_backend(self, layer_type_name):
         # This is a decorator for including
-        assert layer_type_name in cls.layer_constr_dict
+        assert layer_type_name in self.layer_constr_dict
 
         def register_fn(layer):
-            cls.layer_constr_dict[layer_type_name] = layer
+            self.layer_constr_dict[layer_type_name] = layer
             return layer
 
         return register_fn
