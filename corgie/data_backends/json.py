@@ -44,7 +44,7 @@ class JSONLayerBase(BaseLayerBackend):
     def get_filename(self, z):
         return f'{z:06d}'
 
-    def read_backend(self, bcube):
+    def read_backend(self, bcube, **kwargs):
         z_range = bcube.z_range()
         corgie_logger.debug(f'Read from {str(self)}, z: {z_range}')
         data = []

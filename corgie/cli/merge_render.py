@@ -97,6 +97,7 @@ class MergeRenderImageTask(scheduling.Task):
         self.bcube = bcube
 
     def execute(self):
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         padded_bcube = self.bcube.uncrop(self.pad, self.mip)
         for k, specs in enumerate(self.src_specs[::-1]):
             src_z = specs["src_z"]
@@ -109,17 +110,17 @@ class MergeRenderImageTask(scheduling.Task):
             corgie_logger.info(f"field ids={field_ids}")
             z_list = specs.get("src_field_z", [src_z] * len(field_ids))
             fields = FieldSet([self.src_layers[n] for n in field_ids])
-            field = fields.read(bcube=padded_bcube, z_list=z_list, mip=self.mip)
+            field = fields.read(bcube=padded_bcube, z_list=z_list, mip=self.mip, device=device)
             trans = helpers.percentile_trans_adjuster(field)
             corgie_logger.debug(f"{trans}")
-            field -= trans.to_tensor()
+            field -= trans.to_tensor(device=field.device)
             mask_id = specs["mask_id"]
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
             bcube = bcube.translate(x_offset=trans.y, y_offset=trans.x, mip=self.mip)
             corgie_logger.info(f"Load masks for {bcube}")
             mask_layer = self.src_layers[str(specs["src_mask"])]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
-            mask = mask_layer.read(bcube=bcube, mip=self.mip)
+            mask = mask_layer.read(bcube=bcube, mip=self.mip, device=device)
             mask = residuals.res_warp_img(mask.float(), field).tensor()
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
@@ -128,7 +129,7 @@ class MergeRenderImageTask(scheduling.Task):
                 cropped_img = torch.zeros_like(cropped_mask, dtype=torch.float)
             else:
                 img_layer = self.src_layers[str(specs["src_img"])]
-                img = img_layer.read(bcube=bcube, mip=self.mip)
+                img = img_layer.read(bcube=bcube, mip=self.mip, device=device)
                 img = residuals.res_warp_img(img.float(), field)
                 cropped_img = helpers.crop(img, self.pad)
             # write to composite image
@@ -138,7 +139,7 @@ class MergeRenderImageTask(scheduling.Task):
             else:
                 dst_img[cropped_mask] = cropped_img[cropped_mask]
 
-        self.dst_layer.write(dst_img, bcube=self.bcube, mip=self.mip)
+        self.dst_layer.write(dst_img.cpu(), bcube=self.bcube, mip=self.mip)
 
 
 class MergeRenderMaskTask(MergeRenderImageTask):
