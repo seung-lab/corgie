@@ -42,8 +42,8 @@ class Translation:
     def __sub__(self, T):
         return Translation(self.x - T.x, self.y - T.y)
     
-    def to_tensor(self):
-        return torch.tensor([[[[self.x]],[[self.y]]]])
+    def to_tensor(self, **kwargs):
+        return torch.tensor([[[[self.x]],[[self.y]]]], **kwargs)
 
 
 def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
