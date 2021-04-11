@@ -41,11 +41,12 @@ class MergeRenderJob(scheduling.Job):
 
     def task_generator(self):
         chunks = self.dst_layer.break_bcube_into_chunks(
-            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip
+            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip,
+            return_generator=True
         )
 
         if "src_img" in self.src_specs[0]:
-            tasks = [
+            tasks = (
                 MergeRenderImageTask(
                     src_layers=self.src_layers,
                     src_specs=self.src_specs,
@@ -55,9 +56,9 @@ class MergeRenderJob(scheduling.Job):
                     bcube=input_chunk,
                 )
                 for input_chunk in chunks
-            ]
+            )
         else:
-            tasks = [
+            tasks = (
                 MergeRenderMaskTask(
                     src_layers=self.src_layers,
                     src_specs=self.src_specs,
@@ -67,7 +68,7 @@ class MergeRenderJob(scheduling.Job):
                     bcube=input_chunk,
                 )
                 for input_chunk in chunks
-            ]
+            )
         corgie_logger.info(
             f"Yielding render tasks for bcube: {self.bcube}, MIP: {self.mip}"
         )

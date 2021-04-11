@@ -64,7 +64,7 @@ class RenderJob(scheduling.Job):
                 return_generator=True,
             )
 
-            tasks = [
+            tasks = (
                 RenderTask(
                     self.src_stack,
                     self.dst_stack,
@@ -79,7 +79,7 @@ class RenderJob(scheduling.Job):
                     seethrough_offset=self.seethrough_offset,
                 )
                 for input_chunk in chunks
-            ]
+            )
             corgie_logger.info(
                 f"Yielding render tasks for bcube: {self.bcube}, MIP: {mip}"
             )
