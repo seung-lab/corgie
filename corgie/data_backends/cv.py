@@ -78,7 +78,7 @@ class CVLayerBase(BaseLayerBackend):
         return self.backend.create_layer(path=path, reference=self,
                 layer_type=layer_type, **kwargs)
 
-    def read_backend(self, bcube, mip, transpose=True, timestamp=None):
+    def read_backend(self, bcube, mip, transpose=True, timestamp=None, **kwargs):
         x_range = bcube.x_range(mip)
         y_range = bcube.y_range(mip)
         z_range = bcube.z_range()
@@ -238,8 +238,8 @@ class CVFieldLayer(CVLayerBase, layers.FieldLayer):
                     )
         self.backend_dtype = backend_dtype
 
-    def read_backend(self, bcube, mip, transpose=True, timestamp=None):
-        data = super().read_backend(bcube, mip, transpose, timestamp)
+    def read_backend(self, bcube, mip, transpose=True, timestamp=None, **kwargs):
+        data = super().read_backend(bcube, mip, transpose, timestamp, **kwargs)
         if self.backend_dtype == 'int16':
             data = np.float32(data) / 4
         return data
