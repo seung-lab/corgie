@@ -25,7 +25,6 @@ class CachedCloudVolume(CloudVolume):
         key=jsonize_key
     )
     def __new__(self, *kargs, **kwargs):
-        print ("CREATING NEW CV")
         return super().__new__(self, *kargs, **kwargs)
 
 
