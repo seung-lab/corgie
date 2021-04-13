@@ -14,9 +14,7 @@ def jsonize_key(*kargs, **kwargs):
         result += json.dumps(k)
         result += '_'
 
-    for k, v in kwargs.items():
-        result += k + '_' + json.dumps(v)
-        result += '_'
+    json.dumps(kwargs.items(), sort_keys=True)
     return result
 
 class CachedCloudVolume(CloudVolume):
