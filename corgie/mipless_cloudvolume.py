@@ -14,7 +14,7 @@ def jsonize_key(*kargs, **kwargs):
         result += json.dumps(k)
         result += '_'
 
-    json.dumps(kwargs.items(), sort_keys=True)
+    result += json.dumps(kwargs.items(), sort_keys=True)
     return result
 
 class CachedCloudVolume(CloudVolume):
@@ -198,4 +198,3 @@ class MiplessCloudVolume():
 
     def __repr__(self):
         return self.path
-
