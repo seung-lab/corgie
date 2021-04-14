@@ -41,6 +41,15 @@ class Translation:
 
     def __sub__(self, T):
         return Translation(self.x - T.x, self.y - T.y)
+
+    def __mul__(self, scalar):
+        return Translation(self.x * scalar, self.y * scalar)
+
+    def __floordiv__(self, scalar):
+        return Translation(self.x // scalar, self.y // scalar)
+
+    def __truediv__(self, scalar):
+        return Translation(self.x / scalar, self.y / scalar)
     
     def to_tensor(self, **kwargs):
         return torch.tensor([[[[self.x]],[[self.y]]]], **kwargs)

@@ -230,6 +230,7 @@ class FieldSet:
 
         for z, layer in zip(z_list[1:], self.layers[1:]):
             trans = helpers.percentile_trans_adjuster(agg_field)
+            trans = (trans // 2**(layer.data_mip - mip)) * 2**(layer.data_mip - mip)
             corgie_logger.debug(f"{trans}")
             abcube = abcube.reset_coords(zs=z, ze=z + 1, in_place=True)
             abcube = abcube.translate(x_offset=trans.y, y_offset=trans.x, mip=mip)
