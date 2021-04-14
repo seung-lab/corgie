@@ -103,36 +103,44 @@ class MergeRenderImageTask(scheduling.Task):
         for k, specs in enumerate(self.src_specs[::-1]):
             src_z = specs["src_z"]
             dst_z = self.bcube.z_range()[0]
+
             corgie_logger.info(f"Load fields for {padded_bcube}")
             # backwards compatible
             if not isinstance(specs["src_field"], list):
                 specs["src_field"] = [specs["src_field"]]
+            mask_layer = self.src_layers[str(specs["src_mask"])]
+
             field_ids = list(map(str, specs["src_field"]))
             corgie_logger.info(f"field ids={field_ids}")
             z_list = specs.get("src_field_z", [src_z] * len(field_ids))
             fields = FieldSet([self.src_layers[n] for n in field_ids])
             field = fields.read(bcube=padded_bcube, z_list=z_list, mip=self.mip, device=device)
-            trans = helpers.percentile_trans_adjuster(field)
-            corgie_logger.debug(f"{trans}")
-            field -= trans.to_tensor(device=field.device)
-            mask_id = specs["mask_id"]
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
-            bcube = bcube.translate(x_offset=trans.y, y_offset=trans.x, mip=self.mip)
-            corgie_logger.info(f"Load masks for {bcube}")
-            mask_layer = self.src_layers[str(specs["src_mask"])]
+
+            img_trans = helpers.percentile_trans_adjuster(field)
+            mask_trans = img_trans.round_to_mip(self.mip, mask_layer.data_mip)
+            corgie_logger.debug(f"img_trans: {img_trans} | mask_trans: {mask_trans}")
+
+            img_bcube = bcube.translate(x_offset=img_trans.y, y_offset=img_trans.x, mip=self.mip)
+            mask_bcube = bcube.translate(x_offset=mask_trans.y, y_offset=mask_trans.x, mip=self.mip)
+
+            corgie_logger.info(f"Load masks for {mask_bcube}")
+            mask_id = specs["mask_id"]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
-            mask = mask_layer.read(bcube=bcube, mip=self.mip, device=device)
-            mask = residuals.res_warp_img(mask.float(), field).tensor()
+            mask = mask_layer.read(bcube=mask_bcube, mip=self.mip, device=device)
+            mask = residuals.res_warp_img(mask.float(), field - mask_trans.to_tensor(device=field.device)).tensor()
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
-            corgie_logger.info(f"Load image for {bcube}")
+
+            corgie_logger.info(f"Load image for {img_bcube}")
             if cropped_mask.sum() == 0:
                 cropped_img = torch.zeros_like(cropped_mask, dtype=torch.float)
             else:
                 img_layer = self.src_layers[str(specs["src_img"])]
-                img = img_layer.read(bcube=bcube, mip=self.mip, device=device)
-                img = residuals.res_warp_img(img.float(), field)
+                img = img_layer.read(bcube=img_bcube, mip=self.mip, device=device)
+                img = residuals.res_warp_img(img.float(), field - img_trans.to_tensor(device=field.device))
                 cropped_img = helpers.crop(img, self.pad)
+
             # write to composite image
             if k == 0:
                 dst_img = cropped_img
@@ -161,28 +169,34 @@ class MergeRenderMaskTask(MergeRenderImageTask):
         for k, specs in enumerate(self.src_specs[::-1]):
             src_z = specs["src_z"]
             dst_z = self.bcube.z_range()[0]
+
             corgie_logger.info(f"Load fields for {padded_bcube}")
             # backwards compatible
             if not isinstance(specs["src_field"], list):
                 specs["src_field"] = [specs["src_field"]]
+            mask_layer = self.src_layers[str(specs["src_mask"])]
+
             field_ids = list(map(str, specs["src_field"]))
             corgie_logger.info(f"field ids={field_ids}")
             z_list = specs.get("src_field_z", [src_z] * len(field_ids))
             fields = FieldSet([self.src_layers[n] for n in field_ids])
             field = fields.read(bcube=padded_bcube, z_list=z_list, mip=self.mip)
-            trans = helpers.percentile_trans_adjuster(field)
-            corgie_logger.debug(f"{trans}")
-            field -= trans.to_tensor()
-            mask_id = specs["mask_id"]
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
-            bcube = bcube.translate(x_offset=trans.y, y_offset=trans.x, mip=self.mip)
-            corgie_logger.info(f"Load masks for {bcube}")
-            mask_layer = self.src_layers[str(specs["src_mask"])]
+
+            mask_trans = helpers.percentile_trans_adjuster(field)
+            mask_trans = mask_trans.round_to_mip(self.mip, mask_layer.data_mip)
+            corgie_logger.debug(f"mask_trans: {mask_trans}")
+
+            mask_bcube = bcube.translate(x_offset=mask_trans.y, y_offset=mask_trans.x, mip=self.mip)
+
+            corgie_logger.info(f"Load masks for {mask_bcube}")
+            mask_id = specs["mask_id"]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
-            mask = mask_layer.read(bcube=bcube, mip=self.mip)
-            mask = residuals.res_warp_img(mask.float(), field).tensor()
+            mask = mask_layer.read(bcube=mask_bcube, mip=self.mip)
+            mask = residuals.res_warp_img(mask.float(), field - mask_trans.to_tensor()).tensor()
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
+
             relabel_id = torch.as_tensor(specs.get("relabel_id", k), dtype=torch.uint8)
             if k == 0:
                 dst_img = cropped_mask * relabel_id

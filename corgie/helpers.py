@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 
 class Binarizer:
     def __init__(self, binarization):
@@ -36,6 +36,9 @@ class Translation:
     x: float
     y: float
 
+    def __iter__(self):
+        return iter(astuple(self))
+
     def __add__(self, T):
         return Translation(self.x + T.x, self.y + T.y)
 
@@ -45,14 +48,26 @@ class Translation:
     def __mul__(self, scalar):
         return Translation(self.x * scalar, self.y * scalar)
 
+    def __rmul__(self, scalar):
+        return self.__mul__(scalar)
+
     def __floordiv__(self, scalar):
         return Translation(self.x // scalar, self.y // scalar)
 
     def __truediv__(self, scalar):
         return Translation(self.x / scalar, self.y / scalar)
-    
+
     def to_tensor(self, **kwargs):
         return torch.tensor([[[[self.x]],[[self.y]]]], **kwargs)
+
+    def round(self, ndigits=None):
+        return Translation(round(self.x, ndigits), round(self.y, ndigits))
+
+    def round_to_mip(self, src_mip, tgt_mip):
+        if tgt_mip <= src_mip:
+            return self.copy()
+        snap_factor = 2**(tgt_mip - src_mip)
+        return (self // snap_factor) * snap_factor
 
 
 def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
