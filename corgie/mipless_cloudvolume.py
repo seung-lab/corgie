@@ -1,11 +1,30 @@
 import json
 import six
 import copy
+import cachetools
 
 import cloudvolume
 from cloudvolume import CloudVolume, Storage
 
 from corgie.log import logger as corgie_logger
+
+def jsonize_key(*kargs, **kwargs):
+    result = ''
+    for k in kargs[1:]:
+        result += json.dumps(k)
+        result += '_'
+
+    result += json.dumps(kwargs.items(), sort_keys=True)
+    return result
+
+class CachedCloudVolume(CloudVolume):
+    @cachetools.cached(
+        cachetools.LRUCache(maxsize=500),
+        key=jsonize_key
+    )
+    def __new__(self, *kargs, **kwargs):
+        return super().__new__(self, *kargs, **kwargs)
+
 
 def deserialize_miplessCV_old(s, cache={}):
         if s in cache:
@@ -45,7 +64,7 @@ def deserialize_miplessCV(s, cache={}):
 class MiplessCloudVolume():
     """Multi-mip access to CloudVolumes using the same path
     """
-    def __init__(self, path, info=None, allow_info_writes=True, obj=CloudVolume,
+    def __init__(self, path, info=None, allow_info_writes=True, obj=CachedCloudVolume,
             default_chunk=(512, 512, 1), overwrite=False, **kwargs):
         self.path = path
         self.allow_info_writes = allow_info_writes
@@ -162,7 +181,6 @@ class MiplessCloudVolume():
         self.store_info()
 
     def create(self, mip):
-
         corgie_logger.debug('Creating CloudVolume for {0} at MIP{1}'.format(self.path, mip))
         self.extend_info_to_mip(mip)
 
@@ -180,4 +198,3 @@ class MiplessCloudVolume():
 
     def __repr__(self):
         return self.path
-
