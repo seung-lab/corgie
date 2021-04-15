@@ -83,6 +83,8 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--block_size", nargs=1, type=int, default=10)
 @corgie_option("--block_overlap", nargs=1, type=int, default=3)
 @corgie_option("--vote_dist", nargs=1, type=int, default=1)
+@corgie_option('--decay_dist', nargs=1, type=int, default=50)
+
 @click.pass_context
 def align(ctx,
           src_layer_spec,
