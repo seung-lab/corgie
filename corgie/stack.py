@@ -4,14 +4,15 @@
 # 3d bounding box
 # cv
 # section is a stack with thickness == 1
-import six
-import os
 import copy
-import torch
+import os
+
+import six
 
 from corgie import exceptions, helpers
-from corgie.log import logger as corgie_logger
 from corgie.layers import str_to_layer_type
+from corgie.log import logger as corgie_logger
+
 
 class StackBase:
     def __init__(self, name=None):
@@ -21,9 +22,12 @@ class StackBase:
 
     def add_layer(self, layer):
         if layer.name is None:
-            raise exceptions.UnnamedLayerException(layer, f"Layer name "
-                    f"needs to be set for it to be added to {self.name} stack.")
-        #if layer.name in self.layers:
+            raise exceptions.UnnamedLayerException(
+                layer,
+                f"Layer name "
+                f"needs to be set for it to be added to {self.name} stack.",
+            )
+        # if layer.name in self.layers:
         #    raise exceptions.ArgumentError(layer, f"Layer with name "
         #            f"'{layer.name}' added twice to '{self.name}' stack.")
         if self.reference_layer is None:
@@ -84,26 +88,37 @@ class Stack(StackBase):
         for l in layer_list:
             self.add_layer(l)
 
-    def create_sublayer(self, name, layer_type, suffix='', reference=None, **kwargs):
+    def create_sublayer(self, name, layer_type, suffix="", reference=None, **kwargs):
         if self.folder is None:
-            raise exceptions.CorgieException("Stack must have 'folder' field set "
-                    "before sublayers can be created")
+            raise exceptions.CorgieException(
+                "Stack must have 'folder' field set " "before sublayers can be created"
+            )
 
         if self.reference_layer is None and reference is None:
-            raise exceptions.CorgieException("Stack must either have at least one layer "
-                    "or reference layer must be provided for sublayer creation")
+            raise exceptions.CorgieException(
+                "Stack must either have at least one layer "
+                "or reference layer must be provided for sublayer creation"
+            )
 
         if reference is None:
             reference = self.reference_layer
 
         path = os.path.join(self.folder, layer_type, f"{name}{suffix}")
-        l = reference.backend.create_layer(path=path, layer_type=layer_type,
-                name=name, reference=reference, **kwargs)
+        l = reference.backend.create_layer(
+            path=path, layer_type=layer_type, name=name, reference=reference, **kwargs
+        )
         self.add_layer(l)
         return l
 
-    def read_data_dict(self, bcube, mip, translation_adjuster=None, stack_name=None, add_prefix=True,
-            translation=None):
+    def read_data_dict(
+        self,
+        bcube,
+        mip,
+        translation_adjuster=None,
+        stack_name=None,
+        add_prefix=True,
+        translation=None,
+    ):
 
         data_dict = {}
 
@@ -118,7 +133,6 @@ class Stack(StackBase):
         else:
             name_prefix = f"{stack_name}_"
 
-
         agg_field = None
         field_layers = self.get_layers_of_type("field")
         # Assume that the last field is the final one
@@ -129,7 +143,7 @@ class Stack(StackBase):
             data_dict[global_name] = this_field
             agg_field = this_field
 
-        '''for l in field_layers:
+        """for l in field_layers:
             global_name = "{}{}".format(name_prefix, l.name)
             this_field = l.read(bcube=bcube, mip=mip)
             data_dict[global_name] = this_field
@@ -137,9 +151,9 @@ class Stack(StackBase):
             if agg_field is None:
                 agg_field = this_field
             else:
-                agg_field = this_field.field().from_pixels()(agg_field.field().from_pixels()).pixels()'''
+                agg_field = this_field.field().from_pixels()(agg_field.field().from_pixels()).pixels()"""
 
-        assert (f"{name_prefix}agg_field" not in data_dict)
+        assert f"{name_prefix}agg_field" not in data_dict
         data_dict[f"{name_prefix}agg_field"] = agg_field
 
         if translation_adjuster is not None:
@@ -147,13 +161,12 @@ class Stack(StackBase):
             translation.x += src_field_trans.x
             translation.y += src_field_trans.y
 
-        #if translation.x != 0 or translation.y != 0:
-        #import pdb; pdb.set_trace()
+        # if translation.x != 0 or translation.y != 0:
+        # import pdb; pdb.set_trace()
         final_bcube = copy.deepcopy(bcube)
         final_bcube = final_bcube.translate(
-                x_offset=translation.y,
-                y_offset=translation.x,
-                mip=mip)
+            x_offset=translation.y, y_offset=translation.x, mip=mip
+        )
 
         for l in self.get_layers_of_type(["mask", "img"]):
             global_name = f"{name_prefix}{l.name}"
@@ -166,7 +179,10 @@ class Stack(StackBase):
     def cutout(self):
         raise NotImplementedError
 
-def create_stack_from_reference(reference_stack, folder, name, types=None, suffix='', **kwargs):
+
+def create_stack_from_reference(
+    reference_stack, folder, name, types=None, suffix="", **kwargs
+):
     result = Stack(name=name, folder=folder)
     if types is None:
         layers = reference_stack.get_layers()
@@ -174,9 +190,16 @@ def create_stack_from_reference(reference_stack, folder, name, types=None, suffi
         layers = reference_stack.get_layers_of_type(types)
 
     for l in layers:
-        result.create_sublayer(name=l.name, layer_type=l.get_layer_type(), suffix=suffix,
-                reference=l, dtype=l.get_data_type(), **kwargs)
+        result.create_sublayer(
+            name=l.name,
+            layer_type=l.get_layer_type(),
+            suffix=suffix,
+            reference=l,
+            dtype=l.get_data_type(),
+            **kwargs,
+        )
     return result
+
 
 class FieldSet:
     """Collection of Field layers to handle composition"""
