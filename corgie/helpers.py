@@ -89,10 +89,6 @@ def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
         if nonzero_field.sum() == 0:
             result = Translation(0, 0)
         else:
-            med_result = Translation(
-                x=int(nonzero_field[0].median()), y=int(nonzero_field[1].median())
-            )
-
             low_l = percentile(nonzero_field, l)
             high_l = percentile(nonzero_field, h)
             mid = 0.5 * (low_l + high_l)
