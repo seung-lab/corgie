@@ -1,6 +1,6 @@
 import torch
 
-from corgie import exceptions
+from corgie import exceptions, scheduling
 
 from corgie.log import logger as corgie_logger
 from corgie.layers import get_layer_types, str_to_layer_type
@@ -27,6 +27,7 @@ def register_backend(name):
     return register_backend_fn
 
 
+@scheduling.serializable
 class DataBackendBase:
     default_device = None
 
@@ -36,7 +37,7 @@ class DataBackendBase:
             self.device = device
         else:
             self.device = self.default_device
-        super().__init__(*kargs, **kwargs)
+        #super().__init__(*kargs, **kwargs)
 
     def create_layer(self, path, layer_type=None, reference=None, layer_args={}, **kwargs):
         if layer_type not in self.layer_constr_dict:

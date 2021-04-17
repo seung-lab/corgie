@@ -18,8 +18,8 @@ def get_extra_interpolate_parameters():
     return {"recompute_scale_factor": False}
 
 class VolumetricLayer(BaseLayerType):
-    def __init__(self, data_mip=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data_mip=None, *kargs, **kwargs):
+        super().__init__(*kargs, **kwargs)
         self.data_mip = data_mip
 
     def read(self, bcube, mip, **kwargs):
@@ -286,12 +286,12 @@ class SectionValueLayer(VolumetricLayer):
 @register_layer_type("fixed_field")
 class FixedFieldLayer(FieldLayer):
     """Residuals are specified at a fixed resolution, regardless of MIP.
-    For example, a field at MIP2 may have residuals specified in MIP0 
+    For example, a field at MIP2 may have residuals specified in MIP0
     pixels.
 
     NOTE: It is not recommended to create new fields based on this
     class. This class was intended to support existing fields created
-    by legacy code. 
+    by legacy code.
     """
     def __init__(self, *args, fixed_mip=0, **kwargs):
         super().__init__(*args, **kwargs)
@@ -324,7 +324,7 @@ class FixedFieldLayer(FieldLayer):
         return super().read(bcube, mip, **kwargs) / (2**(mip-self.fixed_mip))
 
     # def write(self, data_tens, bcube, mip, **kwargs):
-    #     super().write(data_tens=data_tens*(2**self.fixed_mip), 
-    #                   bcube=indexed_bcube, 
-    #                   mip=mip, 
+    #     super().write(data_tens=data_tens*(2**self.fixed_mip),
+    #                   bcube=indexed_bcube,
+    #                   mip=mip,
     #                   **kwargs)
