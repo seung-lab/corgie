@@ -69,7 +69,7 @@ class Translation:
 
     def round_to_mip(self, src_mip, tgt_mip):
         if tgt_mip <= src_mip:
-            return self.copy()
+            return Translation(self.x, self.y)  # Return copy
         snap_factor = 2 ** (tgt_mip - src_mip)
         return (self // snap_factor) * snap_factor
 
