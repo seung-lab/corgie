@@ -26,22 +26,24 @@ from corgie.cli.upsample import UpsampleJob
 
 
 class AlignBlockJob(scheduling.Job):
-    def __init__(self,
-                src_stack,
-                tgt_stack,
-                dst_stack,
-                cf_method,
-                render_method,
-                bcube,
-                seethrough_method=None,
-                copy_start=True,
-                backward=False,
-                vote_dist=1,
-                suffix=None,
-                softmin_temp=None,
-                blur_sigma=1.,
-                resume_index=0,
-                resume_stage=0):
+    def __init__(
+        self,
+        src_stack,
+        tgt_stack,
+        dst_stack,
+        cf_method,
+        render_method,
+        bcube,
+        seethrough_method=None,
+        copy_start=True,
+        backward=False,
+        vote_dist=1,
+        suffix=None,
+        softmin_temp=None,
+        blur_sigma=1.0,
+        resume_index=0,
+        resume_stage=0,
+    ):
         """Align block with and without voting
 
         Args:
@@ -73,11 +75,11 @@ class AlignBlockJob(scheduling.Job):
         if not self.backward:
             z_step = 1
             z_start = self.bcube.z_range()[0]
-            z_end = self.bcube.z_range()[1] + z_step
+            z_end = self.bcube.z_range()[1]
         else:
             z_step = -1
             z_start = self.bcube.z_range()[1]
-            z_end = self.bcube.z_range()[0] + z_step
+            z_end = self.bcube.z_range()[0]
         seethrough_offset = -z_step
 
         # Set up voting layers
@@ -242,18 +244,19 @@ class AlignBlockJob(scheduling.Job):
 
                 if (z_resume != z) or (self.resume_stage < 2):
                     if self.vote_dist > 1:
-                        corgie_logger.debug(f'Vote {z}')
-                        chunk_xy = self.cf_method['chunk_xy']
-                        chunk_z = self.cf_method['chunk_z']
-                        mip = self.cf_method['processor_mip'][0]
+                        corgie_logger.debug(f"Vote {z}")
+                        chunk_xy = self.cf_method["chunk_xy"]
+                        chunk_z = self.cf_method["chunk_z"]
+                        mip = self.cf_method["processor_mip"][0]
                         vote_job = VoteOverFieldsJob(
-                                        input_fields=estimated_fields,
-                                        output_field=final_field,
-                                        chunk_xy=chunk_xy,
-                                        bcube=bcube,
-                                        mip=mip,
-                                        softmin_temp=self.softmin_temp,
-                                        blur_sigma=self.blur_sigma)
+                            input_fields=estimated_fields,
+                            output_field=final_field,
+                            chunk_xy=chunk_xy,
+                            bcube=bcube,
+                            mip=mip,
+                            softmin_temp=self.softmin_temp,
+                            blur_sigma=self.blur_sigma,
+                        )
 
                         yield from vote_job.task_generator
                         yield scheduling.wait_until_done
