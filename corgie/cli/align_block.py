@@ -130,7 +130,11 @@ class AlignBlockJob(scheduling.Job):
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done
             # CREATE STARTER SECTIONS FOR VOTING
-            elif (z_step > 0 and z < z_start) or (z_step < 0 and z > z_start):
+            elif (
+                (z_step > 0 and z < z_start)
+                or (z_step < 0 and z > z_start)
+                and self.copy_start
+            ):
                 corgie_logger.debug(f"Compute field vote starter {z_start}<{z}")
                 offset = z_start - z
                 compute_field_job = self.cf_method(
