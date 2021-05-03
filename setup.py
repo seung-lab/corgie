@@ -31,12 +31,12 @@ setuptools.setup(
       'modelhouse',
       'idna>=2.5,<3',
       'google-auth<2.0dev,>=1.11.0',
-      'cloud-volume<3',
+      'cloud-volume',
       'scikit-image',
       'h5py',
       'kimimaro',
-      'docutils==0.15.0',
-      'cloud-files>1'
+      'docutils>=0.15.0',
+      'cloud-files'
     ],
     entry_points={
         "console_scripts": [
