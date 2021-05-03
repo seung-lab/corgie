@@ -71,7 +71,7 @@ def downsample_by_spec(
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
 
-        with open(spec_path, "r") as f:
+    with open(spec_path, "r") as f:
         spec = set(json.load(f))
 
     if dst_layer_spec is None:
