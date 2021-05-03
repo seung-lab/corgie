@@ -28,6 +28,7 @@ setuptools.setup(
       'click-option-group',
       'click>=7,<8',
       'procspec',
+      'objectscriber',
       'modelhouse',
       'idna>=2.5,<3',
       'google-auth<2.0dev,>=1.11.0',

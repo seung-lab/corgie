@@ -71,20 +71,22 @@ def downsample_by_spec(
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
 
-    src_layer = create_layer_from_spec(
-        src_layer_spec, caller_name="src layer", readonly=True
-    )
-
-    with open(spec_path, "r") as f:
+        with open(spec_path, "r") as f:
         spec = set(json.load(f))
 
     if dst_layer_spec is None:
         corgie_logger.info(
             "Destination layer not specified. Using Source layer " "as Destination."
         )
+        src_layer = create_layer_from_spec(
+            src_layer_spec, caller_name="src layer", readonly=False
+        )
+
         dst_layer = src_layer
-        dst_layer.readonly = False
     else:
+        src_layer = create_layer_from_spec(
+            src_layer_spec, caller_name="src layer", readonly=True
+        )
         dst_layer = create_layer_from_spec(
             dst_layer_spec,
             caller_name="dst_layer layer",
@@ -93,6 +95,7 @@ def downsample_by_spec(
             chunk_z=chunk_z,
             overwrite=True,
         )
+
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
     for z in range(*bcube.z_range()):
         if z in spec:

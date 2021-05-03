@@ -7,6 +7,7 @@ import cloudvolume
 from cloudvolume import CloudVolume, Storage
 
 from corgie.log import logger as corgie_logger
+from corgie import settings
 
 def jsonize_key(*kargs, **kwargs):
     result = ''
@@ -119,6 +120,9 @@ class MiplessCloudVolume():
         return tmp_cv.info
 
     def store_info(self, info=None):
+        if settings.IS_WORKER:
+            return
+
         if not self.allow_info_writes:
             raise Exception("Attempting to store info to {}, but "
                     "'allow_info_writes' flag is set to False".format(self.path))
