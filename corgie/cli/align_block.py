@@ -29,7 +29,6 @@ class AlignBlockJob(scheduling.Job):
     def __init__(
         self,
         src_stack,
-        tgt_stack,
         dst_stack,
         cf_method,
         render_method,
@@ -51,7 +50,6 @@ class AlignBlockJob(scheduling.Job):
             resume_stage (int): indicates stage (compute field/vote/render)
         """
         self.src_stack = src_stack
-        self.tgt_stack = tgt_stack
         self.dst_stack = dst_stack
         self.bcube = bcube
         self.seethrough_method = seethrough_method
@@ -352,17 +350,6 @@ class AlignBlockJob(scheduling.Job):
     help="Source layer spec. Use multiple times to include all masks, fields, images. "
     + LAYER_HELP_STR,
 )
-#
-@corgie_option(
-    "--tgt_layer_spec",
-    "-t",
-    nargs=1,
-    type=str,
-    required=False,
-    multiple=True,
-    help="Target layer spec. Use multiple times to include all masks, fields, images. \n"
-    "DEFAULT: Same as source layers",
-)
 @corgie_option(
     "--dst_folder",
     nargs=1,
@@ -401,7 +388,6 @@ class AlignBlockJob(scheduling.Job):
 def align_block(
     ctx,
     src_layer_spec,
-    tgt_layer_spec,
     dst_folder,
     vote_dist,
     resume_index,
@@ -437,10 +423,6 @@ def align_block(
     corgie_logger.debug("Setting up layers...")
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
-
-    tgt_stack = create_stack_from_spec(
-        tgt_layer_spec, name="tgt", readonly=True, reference=src_stack
-    )
 
     force_chunk_xy = chunk_xy if force_chunk_xy else None
     dst_stack = stack.create_stack_from_reference(
@@ -496,7 +478,6 @@ def align_block(
 
         align_block_job_back = AlignBlockJob(
             src_stack=src_stack,
-            tgt_stack=tgt_stack,
             dst_stack=dst_stack,
             bcube=bcube_back,
             render_method=render_method,
@@ -515,7 +496,6 @@ def align_block(
 
         align_block_job_forv = AlignBlockJob(
             src_stack=src_stack,
-            tgt_stack=tgt_stack,
             dst_stack=deepcopy(dst_stack),
             bcube=bcube_forv,
             render_method=render_method,
@@ -534,7 +514,6 @@ def align_block(
     else:
         align_block_job = AlignBlockJob(
             src_stack=src_stack,
-            tgt_stack=tgt_stack,
             dst_stack=dst_stack,
             bcube=bcube,
             render_method=render_method,
