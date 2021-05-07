@@ -178,3 +178,7 @@ def coarsen_mask(mask, n=1, flip=False):
         mask = mask
 
     return mask
+
+
+def zeros(*args, **kwargs):
+    return torch.zeros(*args, **kwargs)
