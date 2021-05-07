@@ -22,6 +22,7 @@ from corgie.cli.normalize_by_spec import normalize_by_spec
 from corgie.cli.downsample_by_spec import downsample_by_spec
 from corgie.cli.compare_sections import compare_sections
 from corgie.cli.seethrough_block import seethrough_block
+from corgie.cli.fill_nearest import fill_nearest
 
 COMMAND_LIST = []
 COMMAND_LIST.append(downsample)
@@ -45,6 +46,7 @@ COMMAND_LIST.append(apply_processor_by_spec)
 COMMAND_LIST.append(normalize_by_spec)
 COMMAND_LIST.append(downsample_by_spec)
 COMMAND_LIST.append(seethrough_block)
+COMMAND_LIST.append(fill_nearest)
 
 
 def get_command_list():
