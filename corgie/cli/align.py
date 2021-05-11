@@ -1,6 +1,6 @@
 import click
 import os
-from corgie.block import Block
+from corgie.block import get_blocks
 from copy import deepcopy
 
 from corgie import scheduling, argparsers, helpers, stack
@@ -39,17 +39,6 @@ from corgie.cli.broadcast import BroadcastJob
     help="Source layer spec. Use multiple times to include all masks, fields, images. "
     + LAYER_HELP_STR,
 )
-#
-@corgie_option(
-    "--tgt_layer_spec",
-    "-t",
-    nargs=1,
-    type=str,
-    required=False,
-    multiple=True,
-    help="Target layer spec. Use multiple times to include all masks, fields, images. \n"
-    "DEFAULT: Same as source layers",
-)
 @corgie_option(
     "--dst_folder",
     nargs=1,
@@ -81,38 +70,52 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_optgroup("Block Alignment Specification")
 @corgie_option("--bad_starter_path", nargs=1, type=str, default=None)
 @corgie_option("--block_size", nargs=1, type=int, default=10)
-@corgie_option("--block_overlap", nargs=1, type=int, default=3)
+@corgie_option(
+    "--stitch_size",
+    nargs=1,
+    type=int,
+    default=3,
+    help="Number of sections involved in computing stitching fields.",
+)
 @corgie_option("--vote_dist", nargs=1, type=int, default=1)
-@corgie_option('--decay_dist', nargs=1, type=int, default=50)
-
+@corgie_option("--decay_dist", nargs=1, type=int, default=50)
+@corgie_option(
+    "--restart_stage",
+    nargs=1,
+    type=int,
+    default=0,
+    help="0: block, 1: overlap, 2: stitch",
+)
 @click.pass_context
-def align(ctx,
-          src_layer_spec,
-          tgt_layer_spec,
-          dst_folder,
-          render_pad,
-          render_chunk_xy,
-          processor_spec,
-          pad,
-          crop,
-          processor_mip,
-          chunk_xy,
-          start_coord,
-          end_coord,
-          coord_mip,
-          bad_starter_path,
-          block_size,
-          block_overlap,
-          vote_dist,
-          blend_xy,
-          force_chunk_xy,
-          suffix,
-          copy_start,
-          seethrough_spec,
-          seethrough_spec_mip,
-          decay_dist):
+def align(
+    ctx,
+    src_layer_spec,
+    dst_folder,
+    render_pad,
+    render_chunk_xy,
+    processor_spec,
+    pad,
+    crop,
+    processor_mip,
+    chunk_xy,
+    start_coord,
+    end_coord,
+    coord_mip,
+    bad_starter_path,
+    block_size,
+    stitch_size,
+    vote_dist,
+    blend_xy,
+    force_chunk_xy,
+    suffix,
+    copy_start,
+    seethrough_spec,
+    seethrough_spec_mip,
+    decay_dist,
+    restart_stage,
+):
 
-    scheduler = ctx.obj['scheduler']
+    scheduler = ctx.obj["scheduler"]
 
     if suffix is None:
         suffix = "_aligned"
@@ -126,10 +129,6 @@ def align(ctx,
 
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
-
-    tgt_stack = create_stack_from_spec(
-        tgt_layer_spec, name="tgt", readonly=True, reference=src_stack
-    )
 
     if force_chunk_xy is None:
         force_chunk_xy = chunk_xy
@@ -171,29 +170,24 @@ def align(ctx,
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
+    field_name = f"field{suffix}"
     corgie_logger.debug("Calculating blocks...")
     # TODO: read in bad starter sections
-    bad_starter_sections = []
-
-    blocks = []
-    overlap_blocks = []
-    z = bcube.z_range()[0]
-    while z < bcube.z_range()[-1]:
-        block_start = z
-        block_end = z + block_size
-        while (
-            block_end + block_overlap in bad_starter_sections
-            and block_end + block_overlap < bcube.z_range()[-1]
-        ):
-            block_end += 1
-
-        block = Block(block_start, block_end + block_overlap)
-        blocks.append(block)
-        overlap_block = Block(block_start, block_start + block_overlap)
-        overlap_blocks.append(overlap_block)
-        z = block_end
-    overlap_blocks = overlap_blocks[1:] # num_overlaps = num_blocks - 1
-    corgie_logger.debug("Done!")
+    blocks = get_blocks(
+        start=bcube.z_range()[0],
+        stop=bcube.z_range()[1],
+        block_size=block_size,
+        block_overlap=0,
+        skip_list=[],
+        src_stack=src_stack,
+        even_stack=even_stack,
+        odd_stack=odd_stack,
+    )
+    corgie_logger.debug("blocks")
+    for block in blocks:
+        corgie_logger.debug(block)
+        corgie_logger.debug("stitch")
+        corgie_logger.debug(block.overlap(stitch_size, ""))
 
     render_method = helpers.PartialSpecification(
         f=RenderJob,
@@ -227,148 +221,175 @@ def align(ctx,
     else:
         seethrough_method = None
 
-    corgie_logger.debug("Aligning blocks...")
-    for i in range(len(blocks)):
-        block = blocks[i]
-
-        block_bcube = bcube.copy()
-        block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
-
-        if i % 2 == 0:
-            block_dst_stack = even_stack
-        else:
-            block_dst_stack = odd_stack
-
-        align_block_job_forv = AlignBlockJob(
-            src_stack=src_stack,
-            tgt_stack=tgt_stack,
-            dst_stack=block_dst_stack,
-            bcube=block_bcube,
-            render_method=render_method,
-            cf_method=cf_method,
-            vote_dist=vote_dist,
-            seethrough_method=seethrough_method,
-            suffix=suffix,
-            copy_start=copy_start,
-            backward=False,
-        )
-        scheduler.register_job(
-            align_block_job_forv, job_name=f"Forward Align {block} {block_bcube}"
-        )
-
-    scheduler.execute_until_completion()
-    corgie_logger.debug("Done!")
-
-    corgie_logger.debug("Aligning overlaps...")
-    for i in range(len(blocks)):
-        block = overlap_blocks[i]
-
-        block_bcube = bcube.copy()
-        block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
-
-        # align blockB to blockA
-        block_field = f'field{suffix}'
-        if i % 2 == 0:
-            blockA = even_stack
-            blockB = deepcopy(src_stack)
-            fieldB = odd_stack[block_field]
-        else:
-            blockA = odd_stack
-            blockB = deepcopy(src_stack)
-            fieldB = even_stack[block_field]
-        blockB.add_layer(fieldB)
-
-        align_block_job_forv = AlignBlockJob(src_stack=blockB,
-                                    tgt_stack=blockB,
-                                    dst_stack=blockA,
-                                    bcube=block_bcube,
-                                    render_method=render_method,
-                                    cf_method=cf_method,
-                                    vote_dist=vote_dist,
-                                    seethrough_method=seethrough_method,
-                                    suffix=suffix,
-                                    copy_start=False,
-                                    backward=False)
-        scheduler.register_job(align_block_job_forv, job_name=f"Overlap Align {block} {block_bcube}")
-
-    scheduler.execute_until_completion()
-    corgie_logger.debug("Done!")
-
-    stitching_field = None
-    if block_overlap > 1:
-        corgie_logger.debug("Voting on overlaps")
-        field_dir = 'stitching_field'
-        stitching_field = dst_stack.create_sublayer(field_dir,
-                                            layer_type='field',
-                                            overwrite=True)
-        for i in range(len(blocks)):
-            block = overlap_blocks[i]
-
-            block_bcube = bcube.copy()
-            block_bcube.reset_coords(zs=block.z_start, ze=block.z_end)
-
-            block_field = f'field{suffix}'
-            if i % 2 == 0:
-                fieldA = even_stack[block_field]
-            else:
-                fieldA = odd_stack[block_field]
-            z_list = range(*block_bcube.z_range)
-
-            align_block_job_forv = VoteOverZJob(
-                                        input_field=fieldA,
-                                        output_field=stitching_field,
-                                        chunk_xy=chunk_xy,
-                                        bcube=block_bcube,
-                                        z_list=z_list,
-                                        mip=processor_mip)
-            scheduler.register_job(align_block_job_forv, job_name=f"Overlap Vote {block} {block_bcube}")
+    if restart_stage == 0:
+        corgie_logger.debug("Aligning blocks...")
+        for block in blocks:
+            block_bcube = block.get_bcube(bcube)
+            align_block_job_forv = AlignBlockJob(
+                src_stack=block.src_stack,
+                dst_stack=block.dst_stack,
+                bcube=block_bcube,
+                render_method=render_method,
+                cf_method=cf_method,
+                vote_dist=vote_dist,
+                seethrough_method=seethrough_method,
+                suffix=suffix,
+                copy_start=copy_start,
+                backward=False,
+            )
+            scheduler.register_job(
+                align_block_job_forv, job_name=f"Forward Align {block} {block_bcube}"
+            )
 
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
 
-    corgie_logger.debug("Stitching blocks...")
-    composed_lookup = {z: [] for z in range(*bcube.z_range())}
-    for i in range(len(blocks)):
-        b_start = blocks[i].z_start
-        for z in range(*bcube.z_range()):
-            if z < bcube.z_range()[-1]:
-                composed_lookup[z].append(b_start)
+    stitching_field = None
+    if restart_stage > 0:
+        even_stack.create_sublayer(
+            field_name,
+            layer_type="field",
+            overwrite=False,
+        )
+        odd_stack.create_sublayer(
+            field_name,
+            layer_type="field",
+            overwrite=False,
+        )
 
-    field_dir = 'composed_field'
-    composed_field = dst_stack.create_sublayer(field_dir,
-                                        layer_type='field',
-                                        overwrite=True)
-    for z in range(*bcube.z_range()):
-        section_bcube = bcube.copy()
-        section_bcube.reset_coords(zs=z, ze=block.z_end, inplace=True)
-        z_list = composed_lookup[z]
+    if restart_stage <= 1:
+        corgie_logger.debug("Creating stitching fields...")
+        corgie_logger.debug("Aligning stitching blocks...")
+        for block in blocks[1:]:
+            stitch_block = block.overlap(stitch_size, field_name)
+            block_bcube = stitch_block.get_bcube(bcube)
+            align_block_job_forv = AlignBlockJob(
+                src_stack=stitch_block.src_stack,
+                dst_stack=stitch_block.dst_stack,
+                bcube=block_bcube,
+                render_method=render_method,
+                cf_method=cf_method,
+                vote_dist=vote_dist,
+                seethrough_method=seethrough_method,
+                suffix=suffix,
+                copy_start=False,
+                backward=False,
+            )
+            scheduler.register_job(
+                align_block_job_forv, job_name=f"Stitch Align {block} {block_bcube}"
+            )
 
-        if stitching_field is not None:
-            input_fields = [stitching_field]
-        else:
-            i = 0
-            while block[i].z_start != z_list[0]:
-                i += 1
-            block_field = f'field{suffix}'
-            if i % 2 == 0:
-                input_fields = [even_stack[block_field], odd_stack[block_field]]
+        scheduler.execute_until_completion()
+        corgie_logger.debug("Done!")
+
+        if stitch_size > 1:
+            corgie_logger.debug("Voting over stitching blocks")
+            stitching_field = dst_stack.create_sublayer(
+                "stitching_field", layer_type="field", overwrite=True
+            )
+            for block in blocks[1:]:
+                stitch_block = block.overlap(stitch_size, field_name)
+                block_bcube = bcube.reset_coords(
+                    zs=block.start, ze=block.start + 1, in_place=False
+                )
+                align_block_job_forv = VoteOverZJob(
+                    input_field=stitch_block.dst_stack[block_field],
+                    output_field=stitching_field,
+                    chunk_xy=chunk_xy,
+                    bcube=block_bcube,
+                    z_list=range(stitch_block.start, stitch_block.stop),
+                    mip=processor_mip[0],
+                )
+                scheduler.register_job(
+                    align_block_job_forv,
+                    job_name=f"Stitching Vote {block} {block_bcube}",
+                )
+
+            scheduler.execute_until_completion()
+            corgie_logger.debug("Done!")
+
+    composed_field = dst_stack.create_sublayer(
+        "composed_field", layer_type="field", overwrite=True
+    )
+    if restart_stage <= 2:
+        corgie_logger.debug("Stitching blocks...")
+        for block in blocks[1:]:
+            block_bcube = block.get_bcube(bcube)
+            block_list = block.get_neighbors(dist=decay_dist)
+            corgie_logger.debug(f"src_block: {block}")
+            corgie_logger.debug(f"influencing blocks: {block_list}")
+            z_list = [b.stop for b in block_list]
+
+            # stitching_field used if there is multi-section block overlap,
+            # which requires voting to produce a corrected field.
+            # If there is only single-section block overlap, then use fields
+            # from each block.
+            if stitching_field is not None:
+                input_fields = [stitching_field]
             else:
-                input_fields = [odd_stack[block_field], even_stack[block_field]]
+                # Order with furthest block first (convention of FieldSet).
+                input_fields = [
+                    block.previous.dst_stack[field_name],
+                    block.dst_stack[field_name],
+                ]
 
-        broadcast_job = BroadcastJob(input_fields=input_fields,
-                                    output_field=composed_field,
-                                    chunk_xy=chunk_xy,
-                                    bcube=section_bcube,
-                                    pad=pad,
-                                    z_list=z_list,
-                                    mip=processor_mip,
-                                    decay_dist=decay_dist)
-        scheduler.register_job(broadcast_job, job_name=f"Broadcast {block} {block_bcube}")
+            broadcast_job = BroadcastJob(
+                input_fields=input_fields,
+                output_field=composed_field,
+                chunk_xy=chunk_xy,
+                bcube=block_bcube,
+                pad=pad,
+                z_list=z_list,
+                mip=processor_mip[0],
+                decay_dist=decay_dist,
+            )
+            scheduler.register_job(
+                broadcast_job, job_name=f"Broadcast {block} {block_bcube}"
+            )
 
-    scheduler.execute_until_completion()
-    corgie_logger.debug("Done!")
+        scheduler.execute_until_completion()
+        corgie_logger.debug("Done!")
 
-    # Generate stitching fields
+    if restart_stage <= 3:
+        for block in blocks[:1]:
+            block_bcube = block.get_bcube(bcube)
+            first_src_stack = deepcopy(src_stack)
+            first_src_stack.add_layer(even_stack[field_name])
+            render_job = RenderJob(
+                src_stack=first_src_stack,
+                dst_stack=dst_stack,
+                mips=processor_mip[0],
+                pad=pad,
+                bcube=block_bcube,
+                chunk_xy=chunk_xy,
+                chunk_z=1,
+                render_masks=True,
+                blackout_masks=False,
+            )
+            scheduler.register_job(
+                render_job, job_name=f"Render first block {block_bcube}"
+            )
+        if len(blocks) > 1:
+            block_bcube = bcube.reset_coords(
+                zs=blocks[0].start, ze=blocks[-1].stop, in_place=False
+            )
+            src_stack.add_layer(composed_field)
+            render_job = RenderJob(
+                src_stack=src_stack,
+                dst_stack=dst_stack,
+                mips=processor_mip[0],
+                pad=pad,
+                bcube=block_bcube,
+                chunk_xy=chunk_xy,
+                chunk_z=1,
+                render_masks=True,
+                blackout_masks=False,
+            )
+            scheduler.register_job(
+                render_job, job_name=f"Render remaining blocks {block_bcube}"
+            )
+        scheduler.execute_until_completion()
+        corgie_logger.debug("Done!")
 
     result_report = (
         f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
