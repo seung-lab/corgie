@@ -1,7 +1,7 @@
 import click
 import procspec
 
-from corgie import scheduling, argparsers, helpers
+from corgie import scheduling, argparsers, helpers, exceptions
 
 from corgie.log import logger as corgie_logger
 from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
