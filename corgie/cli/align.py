@@ -371,7 +371,7 @@ def align(
             )
         if len(blocks) > 1:
             block_bcube = bcube.reset_coords(
-                zs=blocks[0].start, ze=blocks[-1].stop, in_place=False
+                zs=blocks[1].start, ze=blocks[-1].stop, in_place=False
             )
             src_stack.add_layer(composed_field)
             render_job = RenderJob(
