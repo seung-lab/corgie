@@ -187,7 +187,7 @@ def align(
     for block in blocks:
         corgie_logger.debug(block)
         corgie_logger.debug("stitch")
-        corgie_logger.debug(block.overlap(stitch_size, ""))
+        corgie_logger.debug(block.overlap(stitch_size))
 
     render_method = helpers.PartialSpecification(
         f=RenderJob,
@@ -261,7 +261,7 @@ def align(
         corgie_logger.debug("Creating stitching fields...")
         corgie_logger.debug("Aligning stitching blocks...")
         for block in blocks[1:]:
-            stitch_block = block.overlap(stitch_size, field_name)
+            stitch_block = block.overlap(stitch_size)
             block_bcube = stitch_block.get_bcube(bcube)
             align_block_job_forv = AlignBlockJob(
                 src_stack=stitch_block.src_stack,
@@ -288,12 +288,12 @@ def align(
                 "stitching_field", layer_type="field", overwrite=True
             )
             for block in blocks[1:]:
-                stitch_block = block.overlap(stitch_size, field_name)
+                stitch_block = block.overlap(stitch_size)
                 block_bcube = bcube.reset_coords(
                     zs=block.start, ze=block.start + 1, in_place=False
                 )
                 align_block_job_forv = VoteOverZJob(
-                    input_field=stitch_block.dst_stack[block_field],
+                    input_field=stitch_block.dst_stack[field_name],
                     output_field=stitching_field,
                     chunk_xy=chunk_xy,
                     bcube=block_bcube,
