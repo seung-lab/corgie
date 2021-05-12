@@ -26,11 +26,17 @@ class Block:
         """
         if self.previous is None:
             return None
+        src_stack = deepcopy(self.dst_stack)
+        dst_stack = deepcopy(self.previous.dst_stack)
+        for stack in [src_stack, dst_stack]:
+            layers = stack.get_layers_of_type("field")
+            for l in layers:
+                stack.remove_layer(l.name)
         return Block(
             start=self.previous.stop,
             stop=self.previous.stop + stitch_size,
-            src_stack=self.dst_stack,
-            dst_stack=self.previous.dst_stack,
+            src_stack=src_stack,
+            dst_stack=dst_stack,
         )
 
     def get_neighbors(self, dist):
