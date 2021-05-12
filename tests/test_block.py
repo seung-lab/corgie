@@ -88,9 +88,6 @@ def test_block_overlap(block_overlap, i, stitch_size, start, stop):
     src = Stack("src")
     even = Stack("even")
     odd = Stack("odd")
-    field = BaseLayerType(name="field")
-    even.add_layer(field)
-    odd.add_layer(field)
     blocks = get_blocks(
         start=0,
         stop=8,
@@ -101,11 +98,10 @@ def test_block_overlap(block_overlap, i, stitch_size, start, stop):
         even_stack=even,
         odd_stack=odd,
     )
-    stitch_block = blocks[i].overlap(stitch_size, "field")
+    stitch_block = blocks[i].overlap(stitch_size)
     if i == 0:
         assert stitch_block is None
     else:
-        assert stitch_block.src_stack["field"] == field
         assert stitch_block.dst_stack == blocks[i].previous.dst_stack
         assert stitch_block.start == start
         assert stitch_block.stop == stop
