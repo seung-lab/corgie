@@ -30,6 +30,9 @@ def get_layer_types():
 
 class BaseLayerType:
     def __init__(self, name=None, device='cpu', readonly=False, **kwargs):
+        import json
+        if len(kwargs) > 0:
+            raise Exception(json.dumps(kwargs))
         super().__init__(**kwargs)
         self.device = device
         self.readonly = readonly

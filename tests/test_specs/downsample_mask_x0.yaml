@@ -1,0 +1,11 @@
+command: downsample 
+original_stack_name: original_x0
+params:
+  src_layer_spec: '{"path": "file://{ORIGINAL_STACK_PATH}/mask/mask"}' 
+  start_coord: "0, 0, 100" 
+  end_coord: "278400, 130944, 104" 
+  chunk_xy: 2048 
+  chunk_z: 1  
+  mip_start: 7
+  mip_end: 10
+  dst_layer_spec: '{"path": "file://{DST_FOLDER}/mask/mask"}'
