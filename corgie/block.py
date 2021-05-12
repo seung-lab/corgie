@@ -15,27 +15,21 @@ class Block:
     def __repr__(self):
         return self.__str__()
 
-    def overlap(self, stitch_size, field_name):
+    def overlap(self, stitch_size):
         """Get block representing overlap between current and previous block
-
-        Modify src_stack so that its conditioned with dst_stack's field
 
         Args:
             stitch_size (int): number of sections to use in stitching
-            field_name (str)
 
         Returns:
             new Block
         """
         if self.previous is None:
             return None
-        src_stack = deepcopy(self.src_stack)
-        if field_name in self.dst_stack:
-            src_stack.add_layer(self.dst_stack[field_name])
         return Block(
             start=self.previous.stop,
             stop=self.previous.stop + stitch_size,
-            src_stack=src_stack,
+            src_stack=self.dst_stack,
             dst_stack=self.previous.dst_stack,
         )
 
