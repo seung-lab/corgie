@@ -178,7 +178,7 @@ def match_files(p1, p2, mode='json', dtype=None):
             if 'uint' in dtype:
                 assert sum(diff > 5) == 0
             elif 'float' in dtype:
-                assert sum(diff > 0.1) == 0
+                assert sum(diff > 0.2) == 0
         elif mode == 'mask':
             diff = abs(dec_d1 - dec_d2)
             if 'uint' in dtype:
@@ -186,7 +186,7 @@ def match_files(p1, p2, mode='json', dtype=None):
         elif mode == 'field':
             diff = abs(dec_d1 - dec_d2)
             assert 'float' in dtype
-            assert sum(diff > 0.1) == 0
+            assert sum(diff > 0.2) == 0
 
         else:
             raise Exception("Unsupported mode")

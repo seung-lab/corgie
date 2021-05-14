@@ -2,8 +2,8 @@ command: align-block
 original_stack_name: original_x1
 params:
   src_layer_spec: '{"path": "file://{ORIGINAL_STACK_PATH}/img/img"}' 
-  start_coord: "0, 0, 5004" 
-  end_coord: "278400, 130944, 5006" 
+  start_coord: "80000, 50000, 5005" 
+  end_coord: "168400, 130944, 5007" 
   chunk_xy: 1024 
   device: cuda
   dst_folder: 'file://{DST_FOLDER}'

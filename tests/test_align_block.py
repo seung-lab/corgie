@@ -21,6 +21,13 @@ def test_seethrough_vv_align_block():
         distributed=True
     )
 
+def test_seethrough_vv_align_block_distributed():
+    run_test_command(
+        'align_block_st_vv_x0',
+        distributed=False
+    )
+
+
 #def test_seethrough_vv_align_block():
 #    run_test_command(
 #        'align_block_tiny_x0',

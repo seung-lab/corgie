@@ -2,9 +2,9 @@ command: align-block
 original_stack_name: original_x1
 params:
   src_layer_spec: '{"path": "file://{ORIGINAL_STACK_PATH}/img/img"}' 
-  start_coord: "0, 0, 5004" 
+  start_coord: "80000, 80000, 5004" 
+  end_coord: "168400, 130944, 5006" 
   device: cuda
-  end_coord: "278400, 130944, 5006" 
   chunk_xy: 1024 
   dst_folder: 'file://{DST_FOLDER}'
   processor_spec: '{"ApplyModel": {
