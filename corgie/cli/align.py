@@ -125,7 +125,7 @@ def align(
 
     corgie_logger.debug("Setting up layers...")
     # TODO: store stitching images in layer other than even & odd
-    if (block_size - stitch_size) <= vote_dist:
+    if vote_dist + stitch_size - 2 >= block_size:
         raise exceptions.CorgieException(
             "block_size too small for stitching + voting requirements (stitch_size + vote_dist)"
         )
