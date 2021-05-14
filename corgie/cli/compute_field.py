@@ -4,6 +4,7 @@ import procspec
 from corgie import scheduling, argparsers, helpers
 
 from corgie.log import logger as corgie_logger
+from corgie.data_backends import DataBackendBase
 from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
 from corgie.boundingcube import get_bcube_from_coords
 from corgie.argparsers import (
@@ -199,7 +200,6 @@ class ComputeFieldTask(scheduling.Task):
     def execute(self):
         src_bcube = self.bcube.uncrop(self.pad, self.mip)
         tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)
-
         processor = procspec.parse_proc(spec_str=self.processor_spec)
 
         tgt_translation, tgt_data_dict = self.tgt_stack.read_data_dict(
@@ -304,7 +304,6 @@ def compute_field(
         suffix = ""
     else:
         suffix = f"_{suffix}"
-
     scheduler = ctx.obj["scheduler"]
 
     corgie_logger.debug("Setting up layers...")

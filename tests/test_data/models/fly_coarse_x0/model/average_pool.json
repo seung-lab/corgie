@@ -1,0 +1,5 @@
+{
+    "type": "custom_layer",
+    "import": ["torch"],
+    "code": "result = torch.nn.AvgPool2d(2, count_include_pad=False)"
+}

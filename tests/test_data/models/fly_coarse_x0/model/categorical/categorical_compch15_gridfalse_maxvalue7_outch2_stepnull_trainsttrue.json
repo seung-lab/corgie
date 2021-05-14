@@ -1,0 +1,12 @@
+{ 
+    "type": "categorical_regression",
+    "arch_desc": {
+        "component_channels": 15,
+        "out_channels": 2,
+        "grid": false,
+        "step": null,
+        "max_value": 7,
+        "train_step": true
+    }
+}
+

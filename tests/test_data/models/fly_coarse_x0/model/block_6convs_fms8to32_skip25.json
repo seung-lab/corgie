@@ -1,0 +1,9 @@
+{
+    "type": "convblock", 
+    "arch_desc": {
+        "fms": [8, 24, 24, 24, 24, 24, 32],
+         "initc_mult": 0.00077459, 
+         "skips": {"2": 5},
+         "flags": []
+    }
+}

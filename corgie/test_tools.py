@@ -1,6 +1,7 @@
 import glob
 import os
 import yaml
+import gzip
 import json
 import sys
 import glob
@@ -16,21 +17,20 @@ from click.testing import CliRunner
 from corgie.main import cli
 from corgie.worker import worker_f
 
+from corgie.data_backends import DataBackendBase, set_device
+
 test_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     '../tests'
 )
-
+models_path = os.path.join(test_path, 'test_data/models')
 runner = CliRunner()
 
-def run_test_command(test_name, original_stack_path, distributed=False):
-    spec_path = os.path.join(test_path, f'test_specs/{test_name}.yaml')
+def run_test_command(test_name, distributed=False):
     dst_path = os.path.join(test_path, f'test_data/tmp/{test_name}')
-    gt_path = os.path.join(test_path, f'test_data/gt/{test_name}')
-
-    shutil.rmtree(dst_path, ignore_errors=True)
-    result = run_command(spec_path, dst_path, distributed=distributed)
+    result = run_command(test_name, dst_path=dst_path, distributed=distributed)
     assert result.exit_code == 0
+    gt_path = os.path.join(test_path, f'test_data/gt/{test_name}')
     assert_folder_equality(gt_path, dst_path)
 
 
@@ -40,7 +40,9 @@ def close_processes(ps):
     for p in ps:
         p.join()
 
-def run_command(spec_path, dst_path, distributed=False):
+def run_command(test_name, dst_path, distributed=False):
+    shutil.rmtree(dst_path, ignore_errors=True)
+    spec_path = os.path.join(test_path, f'test_specs/{test_name}.yaml')
     with open(spec_path, 'r') as f:
         spec = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -53,57 +55,20 @@ def run_command(spec_path, dst_path, distributed=False):
         q_path = 'fq://' + os.path.join(test_path, 'test_data/queue/')
         shutil.rmtree(q_path, ignore_errors=True)
         worker_args = ['-l', 200, '-q', q_path, '-v']
-        '''worker_process = Process(
-            target=partial(
-                worker,
-                lease_seconds=240,
-                queue_name=q_path,
-                verbose=True
-            )
-        )
-        worker_process.start()
-        worker_process = Process(
-            target=partial(
-                runner.invoke,
-                worker,
-                worker_args
-            )
-        )
-        worker_process = Process(
-            target=partial(
-                worker_f,
-                lease_seconds=240,
-                queue_name=q_path,
-                verbose=True,
-                completion_queue_name=None,
-                sqs_queue_region="us-east-1",
-                restart_from_checkpoint_file=None
-            )
-        )
 
-        worker_process.start()
-        atexit.register(
-            partial(
-                close_processes,
-                [worker_process]
-            )
-        )'''
-
-
-    args = [spec['command']]
+    args = []
+    args.append(spec['command'])
     for k, v in spec['params'].items():
         if isinstance(v, list) and not isinstance(v, str):
             for vv in v:
                 args.append(f'--{k}')
                 if isinstance(vv, str):
-                    vv = vv.replace('{ORIGINAL_STACK_PATH}', original_stack_path)
-                    vv = vv.replace('{DST_FOLDER}', dst_path)
+                    vv = do_str_sub(vv, dst_path, original_stack_path)
                 args.append(vv)
         else:
             args.append(f'--{k}')
             if isinstance(v, str):
-                v = v.replace('{ORIGINAL_STACK_PATH}', original_stack_path)
-                v = v.replace('{DST_FOLDER}', dst_path)
+                v = do_str_sub(v, dst_path, original_stack_path)
             args.append(v)
     if distributed:
         args.append('-q')
@@ -111,6 +76,15 @@ def run_command(spec_path, dst_path, distributed=False):
     print (args)
     result = runner.invoke(cli, args, catch_exceptions=False)
     return result
+
+
+def do_str_sub(s, dst_path, original_stack_path):
+    s = s.replace('{ORIGINAL_STACK_PATH}', original_stack_path)
+
+    s = s.replace('{DST_FOLDER}', dst_path)
+
+    s = s.replace('{MODELS_FOLDER}', models_path)
+    return s
 
 
 def get_children(p):
@@ -127,7 +101,7 @@ def assert_folder_equality(path1, path2, parent=None):
     # if it's with info, assume that it's data
 
     if 'info' in subs1:
-        if parent not in ['img', 'layer', 'mask']:
+        if parent not in ['img', 'field', 'mask']:
             # WARNING: only properly subfolderd cv's will be checked
             return
         else:
@@ -196,25 +170,23 @@ def match_files(p1, p2, mode='json', dtype=None):
         with open(p2, 'rb') as f:
             d2 = f.read()
 
-        if dtype == 'float32' and len(d1) % 4 != 0:
-            #TODO: figure this case out
-            return
-
-        dec_d1 = np.frombuffer(bytearray(d1), dtype=dtype)
-        dec_d2 = np.frombuffer(bytearray(d1), dtype=dtype)
+        dec_d1 = np.frombuffer(bytearray(gzip.decompress(d1)), dtype=dtype)
+        dec_d2 = np.frombuffer(bytearray(gzip.decompress(d2)), dtype=dtype)
 
         if mode == 'img':
             diff = abs(dec_d1 - dec_d2)
             if 'uint' in dtype:
                 assert sum(diff > 5) == 0
             elif 'float' in dtype:
-                # TODO: untested
-                assert sum(diff > 0.01) == 0
-
+                assert sum(diff > 0.1) == 0
         elif mode == 'mask':
             diff = abs(dec_d1 - dec_d2)
             if 'uint' in dtype:
                 assert sum(diff > 0) == 0
+        elif mode == 'field':
+            diff = abs(dec_d1 - dec_d2)
+            assert 'float' in dtype
+            assert sum(diff > 0.1) == 0
 
         else:
             raise Exception("Unsupported mode")

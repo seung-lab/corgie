@@ -1,5 +1,6 @@
 import click
 import six
+import copy
 
 from corgie import scheduling, residuals, helpers, stack
 
@@ -103,7 +104,7 @@ class RenderTask(scheduling.Task):
         bcube,
     ):
         super().__init__(self)
-        self.src_stack = src_stack
+        self.src_stack = copy.deepcopy(src_stack)
         self.dst_stack = dst_stack
         self.render_masks = render_masks
         self.blackout_masks = blackout_masks
@@ -207,6 +208,8 @@ class RenderTask(scheduling.Task):
                     corgie_logger.debug(f"Seenthrough {seenthru} pixels")
 
             l.write(cropped_out, bcube=self.bcube, mip=self.mip)
+
+
 
 
 @click.command()

@@ -26,16 +26,23 @@ def register_backend(name):
         return cls
     return register_backend_fn
 
+def set_device(new_device):
+    for k in STR_TO_BACKEND_DICT.keys():
+        STR_TO_BACKEND_DICT[k].device = new_device
+        STR_TO_BACKEND_DICT[k].default_device = new_device
+    DataBackendBase.default_device = new_device
 
 class DataBackendBase:
     default_device = None
 
     def __init__(self, *kargs, device=None, **kwargs):
         self.layer_constr_dict = {n: None for n in get_layer_types()}
-        if device is not None:
-            self.device = device
-        else:
-            self.device = self.default_device
+        #import pdb; pdb.set_trace()
+        #if device is not None:
+        #    self.device = device
+        #else:
+        #    self.device = self.default_device
+        self.device = self.default_device
         super().__init__(*kargs, **kwargs)
 
     def create_layer(self, path, layer_type=None, reference=None, layer_args={}, **kwargs):

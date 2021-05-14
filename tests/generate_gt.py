@@ -18,8 +18,7 @@ if __name__ == "__main__":
     test_name = test_name[:-len('.yaml')]
 
     dst_path = os.path.join(my_path, 'test_data/gt', test_name)
-
-    result = run_command(spec_path, dst_path)
+    result = run_command(test_name, dst_path)
     print (result.output)
 
     assert result.exit_code == 0
