@@ -208,6 +208,10 @@ class RenderTask(scheduling.Task):
 
             l.write(cropped_out, bcube=self.bcube, mip=self.mip)
 
+        for f in self.additional_fields:
+            # remove fields we added
+            self.src_stack.remove_layer(f.name)
+
 
 @click.command()
 @corgie_optgroup("Layer Parameters")
