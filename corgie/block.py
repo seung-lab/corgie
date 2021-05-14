@@ -10,7 +10,7 @@ class Block:
         self.previous = previous
 
     def __str__(self):
-        return f"Block {self.start}->{self.stop}\nsrc_stack={self.src_stack.name}\ndst_stack={self.dst_stack.name}"
+        return f"Block {self.start}->{self.stop}, src_stack={self.src_stack.name}, dst_stack={self.dst_stack.name}"
 
     def __repr__(self):
         return self.__str__()
@@ -26,17 +26,11 @@ class Block:
         """
         if self.previous is None:
             return None
-        src_stack = deepcopy(self.dst_stack)
-        dst_stack = deepcopy(self.previous.dst_stack)
-        for stack in [src_stack, dst_stack]:
-            layers = stack.get_layers_of_type("field")
-            for l in layers:
-                stack.remove_layer(l.name)
         return Block(
             start=self.previous.stop,
             stop=self.previous.stop + stitch_size,
-            src_stack=src_stack,
-            dst_stack=dst_stack,
+            src_stack=self.dst_stack,
+            dst_stack=self.previous.dst_stack,
         )
 
     def get_neighbors(self, dist):
