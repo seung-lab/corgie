@@ -168,9 +168,6 @@ def align(
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
-    block_field_name = f"field{suffix}"
-    stitch_estimated_suffix = f"_stitch_estimated{suffix}"
-    stitch_estimated_name = f"field{stitch_estimated_suffix}"
     corgie_logger.debug("Calculating blocks...")
     # TODO: read in bad starter sections
     blocks = get_blocks(
@@ -183,25 +180,20 @@ def align(
         even_stack=even_stack,
         odd_stack=odd_stack,
     )
-    # We're duplicating the even & odd stacks so that our overlap blocks
-    # do not have the block fields when we start computing fields for stitching
-    overlap_even = deepcopy(even_stack)
-    overlap_odd = deepcopy(odd_stack)
-    blocks_for_overlaps = get_blocks(
-        start=bcube.z_range()[0],
-        stop=bcube.z_range()[1],
-        block_size=block_size,
-        block_overlap=0,
-        skip_list=[],
-        src_stack=None,
-        even_stack=overlap_even,
-        odd_stack=overlap_odd,
-    )
-    stitch_blocks = [b.overlap(stitch_size) for b in blocks_for_overlaps[1:]]
-    corgie_logger.debug("blocks")
+    stitch_blocks = [b.overlap(stitch_size) for b in blocks[1:]]
+    corgie_logger.debug("All Blocks")
     for block, stitch_block in zip(blocks, [None] + stitch_blocks):
         corgie_logger.debug(block)
         corgie_logger.debug(f"Stitch {stitch_block}")
+        corgie_logger.debug("\n")
+
+    # Set all field names
+    block_field_name = f"field{suffix}"
+    stitch_estimated_suffix = f"_stitch_estimated{suffix}"
+    stitch_estimated_name = f"field{stitch_estimated_suffix}"
+    stitch_corrected_name = f"stitch_corrected{suffix}"
+    stitch_corrected_field = None
+    composed_name = f"composed{suffix}"
 
     render_method = helpers.PartialSpecification(
         f=RenderJob,
@@ -239,9 +231,12 @@ def align(
         corgie_logger.debug("Aligning blocks...")
         for block in blocks:
             block_bcube = block.get_bcube(bcube)
+            # Use copies of src & dst so that aligning the stitching blocks
+            # is not affected by these block fields.
+            # Copying also allows local compute to not modify objects for other tasks
             align_block_job_forv = AlignBlockJob(
-                src_stack=block.src_stack,
-                dst_stack=block.dst_stack,
+                src_stack=deepcopy(block.src_stack),
+                dst_stack=deepcopy(block.dst_stack),
                 bcube=block_bcube,
                 render_method=render_method,
                 cf_method=cf_method,
@@ -249,6 +244,7 @@ def align(
                 seethrough_method=seethrough_method,
                 suffix=suffix,
                 copy_start=True,
+                use_starters=True,
                 backward=False,
             )
             scheduler.register_job(
@@ -258,27 +254,16 @@ def align(
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
 
-    stitch_corrected_field = None
-    if restart_stage > 0:
-        even_stack.create_sublayer(
-            block_field_name,
-            layer_type="field",
-            overwrite=False,
-        )
-        odd_stack.create_sublayer(
-            block_field_name,
-            layer_type="field",
-            overwrite=False,
-        )
-
     if restart_stage <= 1:
         corgie_logger.debug("Creating stitching fields...")
         corgie_logger.debug("Aligning stitching blocks...")
         for stitch_block in stitch_blocks:
             block_bcube = stitch_block.get_bcube(bcube)
+            # These blocks will have block-aligned images, but not
+            # the block_fields that warped them.
             align_block_job_forv = AlignBlockJob(
-                src_stack=stitch_block.src_stack,
-                dst_stack=stitch_block.dst_stack,
+                src_stack=deepcopy(stitch_block.src_stack),
+                dst_stack=deepcopy(stitch_block.dst_stack),
                 bcube=block_bcube,
                 render_method=render_method,
                 cf_method=cf_method,
@@ -286,6 +271,7 @@ def align(
                 seethrough_method=seethrough_method,
                 suffix=stitch_estimated_suffix,
                 copy_start=False,
+                use_starters=False,
                 backward=False,
             )
             scheduler.register_job(
@@ -296,13 +282,17 @@ def align(
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
 
-    if restart_stage > 1:
-        for overlap_block in [overlap_even, overlap_odd]:
-            overlap_block.create_sublayer(
-                stitch_estimated_name,
-                layer_type="field",
-                overwrite=False,
-            )
+    # Add in the stitch_estimated fields that were just created above
+    even_stack.create_sublayer(
+        stitch_estimated_name,
+        layer_type="field",
+        overwrite=False,
+    )
+    odd_stack.create_sublayer(
+        stitch_estimated_name,
+        layer_type="field",
+        overwrite=False,
+    )
     if restart_stage <= 2:
         if stitch_size > 1:
             corgie_logger.debug("Voting over stitching blocks")
@@ -332,6 +322,17 @@ def align(
 
     # TODO: downsample stitching fields, and use them in broadcasting by distance
 
+    # Add in the block-align fields
+    even_stack.create_sublayer(
+        block_field_name,
+        layer_type="field",
+        overwrite=False,
+    )
+    odd_stack.create_sublayer(
+        block_field_name,
+        layer_type="field",
+        overwrite=False,
+    )
     composed_field = dst_stack.create_sublayer(
         f"composed_field{suffix}", layer_type="field", overwrite=True
     )
