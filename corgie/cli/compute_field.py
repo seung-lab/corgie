@@ -197,11 +197,13 @@ class ComputeFieldTask(scheduling.Task):
         self.clear_nontissue_field = clear_nontissue_field
 
     def execute(self):
+        corgie_logger.debug(f"ComputeFieldTask")
         src_bcube = self.bcube.uncrop(self.pad, self.mip)
         tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)
 
         processor = procspec.parse_proc(spec_str=self.processor_spec)
 
+        corgie_logger.debug(f"Read target")
         tgt_translation, tgt_data_dict = self.tgt_stack.read_data_dict(
             tgt_bcube, mip=self.mip, stack_name="tgt"
         )
@@ -211,6 +213,7 @@ class ComputeFieldTask(scheduling.Task):
             tgt_data_dict["tgt_agg_field"], unaligned_img=tgt_data_dict["tgt_img"]
         )
         tgt_drift = helpers.Translation(0, 0)
+        corgie_logger.debug(f"Read source")
         src_translation, src_data_dict = self.src_stack.read_data_dict(
             src_bcube, mip=self.mip, stack_name="src", translation=tgt_drift
         )
@@ -219,12 +222,14 @@ class ComputeFieldTask(scheduling.Task):
 
         processor_input = {**src_data_dict, **tgt_data_dict}
 
+        corgie_logger.debug(f"Compute field")
         predicted_field = processor(processor_input, output_key="src_cf_field")
 
         predicted_field.x += tgt_drift.x
         predicted_field.y += tgt_drift.y
 
         cropped_field = helpers.crop(predicted_field, self.crop)
+        corgie_logger.debug(f"Write field")
         self.dst_layer.write(cropped_field, bcube=self.bcube, mip=self.mip)
 
 
