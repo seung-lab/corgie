@@ -3,7 +3,7 @@ import os
 from corgie.block import get_blocks
 from copy import deepcopy
 
-from corgie import scheduling, argparsers, helpers, stack
+from corgie import exceptions
 
 from corgie.log import logger as corgie_logger
 from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
@@ -122,6 +122,13 @@ def align(
 
     if crop is None:
         crop = pad
+
+    corgie_logger.debug("Setting up layers...")
+    # TODO: store stitching images in layer other than even & odd
+    if (block_size - stitch_size) <= vote_dist:
+        raise exceptions.CorgieException(
+            "block_size too small for stitching + voting requirements (stitch_size + vote_dist)"
+        )
 
     corgie_logger.debug("Setting up layers...")
 
