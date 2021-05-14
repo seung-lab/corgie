@@ -102,7 +102,7 @@ class ComposeWithDistanceTask(scheduling.Task):
         self.output_field.write(cropped_field, bcube=self.bcube, mip=self.mip)
 
 
-class BroadcastTask(ComposeWithDistanceTask):
+class BroadcastTask(scheduling.Task):
     def __init__(
         self,
         block_field,
@@ -129,21 +129,31 @@ class BroadcastTask(ComposeWithDistanceTask):
                 length of z_list will indicate how many times to repeat the stitching_fields list
             decay_dist (float): distance for influence of previous section
         """
-        corgie_logger.debug(f"z_list: {z_list}")
-        corgie_logger.debug(f"stitching_fields: {stitching_fields}")
-        input_fields = stitching_fields[::-1]
-        if len(z_list) != len(input_fields):
-            fmul = len(z_list) // len(input_fields)
-            frem = len(z_list) % len(input_fields)
+        super().__init__()
+        self.block_field = block_field
+        self.stitching_fields = stitching_fields
+        self.output_field = output_field
+        self.mip = mip
+        self.pad = pad
+        self.bcube = bcube
+        self.z_list = z_list
+        self.decay_dist = decay_dist
+        self.trans_adj = helpers.percentile_trans_adjuster
+
+    def execute(self):
+        corgie_logger.debug(f"BroadcastTask, {self.bcube}")
+        input_fields = self.stitching_fields[::-1]
+        if len(self.z_list) != len(input_fields):
+            fmul = len(self.z_list) // len(input_fields)
+            frem = len(self.z_list) % len(input_fields)
             input_fields = input_fields[::-1]
             input_fields = fmul * input_fields + input_fields[:frem]
             input_fields = input_fields[::-1]
-        super().__init__(
-            input_fields=input_fields + [block_field],
-            output_field=output_field,
-            mip=mip,
-            pad=pad,
-            bcube=bcube,
-            z_list=z_list + [bcube.z_range()[0]],
-            decay_dist=decay_dist,
-        )
+        z_list = (self.z_list + [self.bcube.z_range()[0]],)
+        corgie_logger.debug(f"input_fields: {input_fields}")
+        corgie_logger.debug(f"z_list: {z_list}")
+        pbcube = self.bcube.uncrop(self.pad, self.mip)
+        fields = DistanceFieldSet(decay_dist=self.decay_dist, layers=input_fields)
+        field = fields.read(bcube=pbcube, z_list=z_list, mip=self.mip)
+        cropped_field = helpers.crop(field, self.pad)
+        self.output_field.write(cropped_field, bcube=self.bcube, mip=self.mip)
