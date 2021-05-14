@@ -149,7 +149,8 @@ class BroadcastTask(scheduling.Task):
             input_fields = input_fields[::-1]
             input_fields = fmul * input_fields + input_fields[:frem]
             input_fields = input_fields[::-1]
-        z_list = (self.z_list + [self.bcube.z_range()[0]],)
+        input_fields += [self.block_field]
+        z_list = self.z_list + [self.bcube.z_range()[0]]
         corgie_logger.debug(f"input_fields: {input_fields}")
         corgie_logger.debug(f"z_list: {z_list}")
         pbcube = self.bcube.uncrop(self.pad, self.mip)
