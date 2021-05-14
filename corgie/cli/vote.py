@@ -129,9 +129,7 @@ class VoteOverZJob(scheduling.Job):
         super().__init__()
 
     def task_generator(self):
-        tmp_key = list(self.input_field.keys())[0]
-        tmp_layer = self.input_field[tmp_key]
-        chunks = tmp_layer.break_bcube_into_chunks(
+        chunks = self.output_field.break_bcube_into_chunks(
             bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip
         )
 
@@ -149,9 +147,7 @@ class VoteOverZJob(scheduling.Job):
         ]
 
         corgie_logger.debug(
-            "Yielding VoteMultiZTask for bcube: {}, MIP: {}".format(
-                self.bcube, self.mip
-            )
+            "Yielding VoteOverZTask for bcube: {}, MIP: {}".format(self.bcube, self.mip)
         )
         yield tasks
 
@@ -194,7 +190,7 @@ class VoteOverZTask(scheduling.Task):
     def execute(self):
         fields = []
         for z in self.z_list:
-            bcube = self.bcube.reset_coords(zs=z, ze=z + 1, inplace=False)
+            bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             fields.append(self.input_field.read(bcube, mip=self.mip))
         fields = torch.cat([f for f in fields]).field()
         voted_field = fields.vote(
