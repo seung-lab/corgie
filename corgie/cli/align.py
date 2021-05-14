@@ -83,7 +83,7 @@ from corgie.cli.broadcast import BroadcastJob
     nargs=1,
     type=int,
     default=0,
-    help="0: block, 1: overlap, 2: stitch",
+    help="0: align blocks, 1: align overlaps, 2: vote over overlaps, 3: broadcast stitch field, 4: render with composed field",
 )
 @click.pass_context
 def align(
@@ -255,7 +255,6 @@ def align(
         corgie_logger.debug("Done!")
 
     if restart_stage <= 1:
-        corgie_logger.debug("Creating stitching fields...")
         corgie_logger.debug("Aligning stitching blocks...")
         for stitch_block in stitch_blocks:
             block_bcube = stitch_block.get_bcube(bcube)
