@@ -79,7 +79,7 @@ class AlignBlockJob(scheduling.Job):
 
         # Set up voting layers
         if (self.vote_dist > 1) and self.use_starters:
-            starter_section_start = z_start - self.vote_dist * z_step
+            starter_section_start = z_start - (self.vote_dist - 1) * z_step
         else:
             starter_section_start = z_start
         z_range = range(starter_section_start, z_end, z_step)
