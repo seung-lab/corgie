@@ -1,0 +1,6 @@
+{
+    "type": "TransparentSeq",
+    "modules": [
+        {"path": "block_5convs_3x3_fms1to1_skip14.json"}
+    ] 
+}

@@ -1,5 +1,5 @@
 alabaster==0.7.12
-artificery==0.0.3.2
+artificery==0.0.3.3
 attrs==20.3.0
 Babel==2.9.0
 beautifulsoup4==4.9.3

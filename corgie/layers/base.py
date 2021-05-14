@@ -30,6 +30,9 @@ def get_layer_types():
 
 class BaseLayerType:
     def __init__(self, name=None, device='cpu', readonly=False, **kwargs):
+        import json
+        if len(kwargs) > 0:
+            raise Exception(json.dumps(kwargs))
         super().__init__(**kwargs)
         self.device = device
         self.readonly = readonly
@@ -40,7 +43,7 @@ class BaseLayerType:
         # TODO: if np type is unit32, convert it to int64
         if data_np.dtype == np.uint32:
             data_np = data_np.astype(np.int64)
-        data_tens = torch.as_tensor(data_np, device=kwargs.get('device', None))
+        data_tens = torch.as_tensor(data_np, device=self.device)
         data_tens = helpers.cast_tensor_type(data_tens, dtype)
         return data_tens
 

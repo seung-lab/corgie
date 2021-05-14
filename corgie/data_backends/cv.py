@@ -44,12 +44,13 @@ class CVLayerBase(BaseLayerBackend):
             else:
                 dtype = self.dtype
             info['data_type'] = dtype
-            if not self.supports_voxel_offset():
+            if not self.supports_voxel_offset() or force_chunk_xy:
                 for scale in info['scales']:
                     scale['voxel_offset'] = [0, 0, 0]
             if not self.supports_chunking():
                 for scale in info['scales']:
                     scale['chunk_sizes'] = [[1, 1, 1]]
+
             if force_chunk_z is not None:
                 for scale in info['scales']:
                     scale['chunk_sizes'][0][-1] = force_chunk_z

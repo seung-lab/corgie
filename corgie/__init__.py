@@ -3,3 +3,5 @@ from corgie.worker import worker as corgie_worker
 
 from corgie.cli import *
 
+from corgie import test_tools
+

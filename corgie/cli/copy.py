@@ -146,7 +146,6 @@ def copy(
     force_chunk_xy,
     force_chunk_z,
 ):
-
     scheduler = ctx.obj["scheduler"]
     if suffix is None:
         suffix = ""
@@ -173,7 +172,6 @@ def copy(
         force_chunk_z=force_chunk_z,
         overwrite=True,
     )
-
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     copy_job = CopyJob(

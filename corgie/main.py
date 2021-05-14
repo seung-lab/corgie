@@ -7,7 +7,7 @@ from corgie.log import logger as corgie_logger
 
 from corgie.argparsers import corgie_option, corgie_optgroup
 from corgie.data_backends import get_data_backends, str_to_backend, \
-        DEFAULT_DATA_BACKEND, DataBackendBase
+        DEFAULT_DATA_BACKEND, DataBackendBase, set_device
 from corgie.cli.downsample import downsample
 
 from corgie.cli import get_command_list
@@ -54,7 +54,7 @@ class GroupWithCommandOptions(click.Group):
 @scheduling.scheduler_click_options
 @click.option('--device',     '-d', 'device', nargs=1,
                 type=str,
-                default='cpu',
+                default='cuda',
                 help="Pytorch device specification. Eg: 'cpu', 'cuda', 'cuda:0'",
                 show_default=True)
 @click.option('-v', '--verbose', count=True, help='Turn on debug logging')
@@ -66,7 +66,8 @@ def cli(ctx, device, verbose, **kwargs):
     if ctx.invoked_subcommand is None:
         configure_logger(verbose)
         ctx.obj = {}
-        DataBackendBase.default_device = device
+        set_device(device)
+        #DataBackendBase.default_device = device
         corgie_logger.debug("Creating scheduler...")
         kwargs['command_name'] = ctx.command.name
         ctx.obj['scheduler'] = scheduling.parse_scheduler_from_kwargs(

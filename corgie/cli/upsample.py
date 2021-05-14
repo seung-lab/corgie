@@ -160,15 +160,14 @@ def upsample(
             caller_name="dst_layer layer",
             readonly=False,
             reference=src_layer,
-            chunk_z=chunk_z,
             overwrite=True,
         )
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
     upsample_job = UpsampleJob(
-        src_layer,
-        dst_layer,
-        mip_start,
-        mip_end,
+        src_layer=src_layer,
+        dst_layer=dst_layer,
+        mip_start=mip_start,
+        mip_end=mip_end,
         bcube=bcube,
         chunk_xy=chunk_xy,
         chunk_z=chunk_z,

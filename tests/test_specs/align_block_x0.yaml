@@ -1,0 +1,17 @@
+command: align-block 
+original_stack_name: original_x1
+params:
+  src_layer_spec: '{"path": "file://{ORIGINAL_STACK_PATH}/img/img"}' 
+  start_coord: "80000, 50000, 5005" 
+  end_coord: "168400, 130944, 5007" 
+  chunk_xy: 1024 
+  device: cuda
+  dst_folder: 'file://{DST_FOLDER}'
+  processor_spec: '{"ApplyModel": {
+   "params": {
+      "path": "{MODELS_FOLDER}/fly_coarse_x0",
+      "checkpoint_name": "try_x0_nobn",
+      "finetune": false,
+  }}}' 
+  processor_mip: 7 
+  vote_dist: 1 

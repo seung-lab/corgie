@@ -1,0 +1,119 @@
+{
+    "type": "ScaleNet",
+    "downmodules": {
+    "4": {
+        "type": "warp_with_input_downmodule",
+                  "arch_desc": {
+                      "inner_module": {
+                          "type": "sequence",
+                          "arch_desc": {
+                              "module_list": [
+                                  {"path": "block_6convs_fms8to32_skip25.json"},
+                                  {"path": "categorical/categorical_compch15_gridfalse_maxvalue7_outch2_stepnull_trainsttrue.json"}
+                              ]
+                          }
+                      },
+                      "trainable": true 
+                  }
+             },
+    "2": {
+        "type": "warp_with_input_downmodule",
+                  "arch_desc": {
+                      "inner_module": {
+                          "type": "sequence",
+                          "arch_desc": {
+                              "module_list": [
+                                  {"path": "block_6convs_fms8to32_skip25.json"},
+                                  {"path": "categorical/categorical_compch15_gridfalse_maxvalue7_outch2_stepnull_trainsttrue.json"}
+                              ]
+                          }
+                      },
+                      "trainable": true 
+                  }
+             }
+
+    },
+    "upmodules": {
+        "0": {"type": "fm_range_apply",
+              "module": {
+                    "type": "split_processor",
+                    "processors": [
+                        {"fm_range": [0, 1], "module": {"path": "identity.json"}},
+                        {"fm_range": [0, 1], "module": {"path": "embedder_m0_3x3_fms1x.json"}}
+                    ]
+                  
+              },
+              "trainable": true,
+              "fm_range": 1 
+       },
+       "1": {"type": "fm_range_apply",
+             "module": {
+                    "type": "split_processor",
+                    "processors": [
+                        {"fm_range": [0, 1], "module": {"path": "average_pool.json"}},
+                        {"fm_range": [0, 2], "module": {"path": "embedder_fms2to3.json"}}
+                    ]
+                  
+              },
+              "trainable": true,
+              "fm_range": 2 
+       },
+       "2": {"type": "fm_range_apply",
+             "module": {
+                    "type": "split_processor",
+                    "processors": [
+                        {"fm_range": [0, 1], "module": {"path": "average_pool.json"}},
+                        {"fm_range": [0, 4], "module": {"path": "embedder_fms4to3.json"}}
+                    ]
+                  
+              },
+              "trainable": true,
+              "fm_range": 4 
+       },
+       "3": {"type": "fm_range_apply",
+             "module": {
+                    "type": "split_processor",
+                    "processors": [
+                        {"fm_range": [0, 1], "module": {"path": "average_pool.json"}},
+                        {"fm_range": [0, 4], "module": {"path": "embedder_fms4to3.json"}}
+                    ]
+                  
+              },
+              "trainable": true,
+              "fm_range": 4 
+       },
+       "4": {"type": "fm_range_apply",
+             "module": {
+                    "type": "split_processor",
+                    "processors": [
+                        {"fm_range": [0, 1], "module": {"path": "average_pool.json"}},
+                        {"fm_range": [0, 4], "module": {"path": "embedder_fms4to3.json"}}
+                    ]
+                  
+              },
+              "trainable": true,
+              "fm_range": 4 
+       }
+    },
+    "uplinks": {
+       "0": {"path": "identity.json"},
+       "1": {"path": "identity.json"},
+       "2": {"path": "identity.json"},
+       "3": {"path": "identity.json"},
+       "4": {"path": "identity.json"}
+    },
+    "downlinks": {
+       "all": {"path": "upsample_residuals.json"}
+    },
+    "skiplinks": {
+       "all": {"path": "identity.json"}
+    },
+    "combiners": {
+       "all": {
+           "type": "rollback_warp",  
+           "arch_desc": {
+               "rollback": 0 
+           }
+        }
+    }
+}

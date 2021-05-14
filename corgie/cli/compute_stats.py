@@ -183,7 +183,7 @@ class ComputeStatsTask(scheduling.Task):
 
         if self.mean_layer is not None:
             if len(src_data) == 0:
-                mean = torch.FloatTensor([0], device=src_data.device)
+                mean = torch.FloatTensor([0]).to(src_data.device)
             else:
                 mean = src_data.float().mean()
 
@@ -197,7 +197,7 @@ class ComputeStatsTask(scheduling.Task):
 
         if self.var_layer is not None:
             if len(src_data) == 0:
-                var = torch.FloatTensor([0], device=src_data.device)
+                var = torch.FloatTensor([0]).to(src_data.device)
             else:
                 var = src_data.float().var()
 

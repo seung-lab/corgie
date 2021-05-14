@@ -143,7 +143,6 @@ def downsample(
 ):
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
-
     src_layer = create_layer_from_spec(
         src_layer_spec, caller_name="src layer", readonly=True
     )
@@ -160,7 +159,6 @@ def downsample(
             caller_name="dst_layer layer",
             readonly=False,
             reference=src_layer,
-            chunk_z=chunk_z,
             overwrite=True,
         )
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
