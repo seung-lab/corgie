@@ -95,6 +95,12 @@ class CopyTask(scheduling.Task):
                 src[mask] = 0
             l.write(src, bcube=self.bcube, mip=self.mip)
 
+        # copy fields
+        write_layers = self.dst_stack.get_layers_of_type("field")
+        for l in write_layers:
+            src = src_data_dict[f"src_{l.name}"]
+            l.write(src, bcube=self.bcube, mip=self.mip)
+
 
 @click.command()
 @corgie_optgroup("Layer Parameters")
