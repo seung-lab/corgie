@@ -71,13 +71,18 @@ def create_layer_from_dict(param_dict, reference=None, caller_name=None,
                 f'must be of type in {allowed_types}')
 
     backend = str_to_backend(data_backend)
-    layer = backend.create_layer(path=layer_path, layer_type=layer_type,
-            reference=reference, layer_args=layer_args,
-            **kwargs)
-
     name = params["name"]
     if name is None:
-        name = layer.get_layer_type()
+        name = params['type']
+
+    layer = backend.create_layer(
+        path=layer_path,
+        layer_type=layer_type,
+        reference=reference,
+        name=name,
+        layer_args=layer_args,
+        **kwargs)
+
     layer.name = name
 
     return layer

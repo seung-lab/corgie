@@ -3,7 +3,7 @@ import numpy as np
 
 from corgie import constants, exceptions
 from corgie import helpers
-
+from corgie import scheduling
 
 STR_TO_LTYPE_DICT  = dict()
 
@@ -27,10 +27,9 @@ def str_to_layer_type(s):
 def get_layer_types():
     return list(STR_TO_LTYPE_DICT.keys())
 
-
+@scheduling.serializable
 class BaseLayerType:
     def __init__(self, name=None, device='cpu', readonly=False, **kwargs):
-        super().__init__(**kwargs)
         self.device = device
         self.readonly = readonly
         self.name = name

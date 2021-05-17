@@ -144,17 +144,20 @@ def upsample(
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
 
-    src_layer = create_layer_from_spec(
-        src_layer_spec, caller_name="src layer", readonly=True
-    )
 
     if dst_layer_spec is None:
         corgie_logger.info(
             "Destination layer not specified. Using Source layer " "as Destination."
         )
+        src_layer = create_layer_from_spec(
+            src_layer_spec, caller_name="src layer", readonly=False
+        )
         dst_layer = src_layer
         dst_layer.readonly = False
     else:
+        src_layer = create_layer_from_spec(
+            src_layer_spec, caller_name="src layer", readonly=True
+        )
         dst_layer = create_layer_from_spec(
             dst_layer_spec,
             caller_name="dst_layer layer",
