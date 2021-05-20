@@ -17,7 +17,6 @@ from corgie.argparsers import (
 
 from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
-from corgie.cli.vote import VoteJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.compare_sections import CompareSectionsJob
 
@@ -163,7 +162,11 @@ def seethrough_block(
         force_chunk_z=force_chunk_z,
     )
     render_method = helpers.PartialSpecification(
-        f=RenderJob, pad=pad, chunk_xy=chunk_xy, chunk_z=1, render_masks=False,
+        f=RenderJob,
+        pad=pad,
+        chunk_xy=chunk_xy,
+        chunk_z=1,
+        render_masks=False,
     )
     seethrough_method = helpers.PartialSpecification(
         f=CompareSectionsJob,
@@ -194,4 +197,3 @@ def seethrough_block(
         f"Results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
     )
     corgie_logger.info(result_report)
-
