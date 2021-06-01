@@ -77,7 +77,7 @@ from corgie.cli.broadcast import BroadcastJob
     help="Number of sections involved in computing stitching fields.",
 )
 @corgie_option("--vote_dist", nargs=1, type=int, default=1)
-@corgie_option("--decay_dist", nargs=1, type=int, default=50)
+@corgie_option("--decay_dist", nargs=1, type=int, default=100)
 @corgie_option(
     "--restart_stage",
     nargs=1,
