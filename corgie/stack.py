@@ -210,24 +210,22 @@ class FieldSet:
     def append(self, layer):
         self.layers.append(layer)
 
-    def get_field(self, layer, bcube, mip, **kwargs):
-        """Get field, adjusted by distance
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field
 
         Args:
             layer (Layer)
             bcube (BoundingCube)
             mip (int)
-            # dist (float)
+            dist (float)
 
         Returns:
-            TorchField # adjusted (blurred/attenuated) by distance
+            TorchField
         """
-        # TODO: add ability to get blurred field using trilinear interpolation
-        # c = min(max(dist / self.decay_dist, 0.), 1.)
-        corgie_logger.debug(f"get_field")
-        corgie_logger.debug(f"\tlayer={layer}")
-        corgie_logger.debug(f"\tbcube={bcube}")
-        corgie_logger.debug(f"\tmip={mip}")
+        # corgie_logger.debug(f"get_field")
+        # corgie_logger.debug(f"\tlayer={layer}")
+        # corgie_logger.debug(f"\tbcube={bcube}")
+        # corgie_logger.debug(f"\tmip={mip}")
         for k, v in kwargs.items():
             corgie_logger.debug(f"\t{k}={v}")
 
@@ -249,7 +247,9 @@ class FieldSet:
         z = z_list[0]
         layer = self.layers[0]
         abcube = bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
-        agg_field = self.get_field(layer=layer, bcube=abcube, mip=mip, **kwargs)
+        agg_field = self.get_field(
+            layer=layer, bcube=abcube, mip=mip, dist=src_z - z, **kwargs
+        )
 
         for z, layer in zip(z_list[1:], self.layers[1:]):
             trans = helpers.percentile_trans_adjuster(agg_field)
@@ -260,9 +260,44 @@ class FieldSet:
             trans = trans.to_tensor(device=agg_field.device)
             agg_field -= trans
             agg_field = agg_field.from_pixels()
-            this_field = self.get_field(layer=layer, bcube=abcube, mip=mip, **kwargs)
+            this_field = self.get_field(
+                layer=layer, bcube=abcube, mip=mip, dist=src_z - z, **kwargs
+            )
             this_field = this_field.from_pixels()
             agg_field = agg_field(this_field)
             agg_field = agg_field.pixels()
             agg_field += trans
         return agg_field
+
+
+class DistanceFieldSet(FieldSet):
+    """Compose set of fields, adjusting fields based on distance from source"""
+
+    def __init__(self, decay_dist, layers=[]):
+        super().__init__(layers)
+        self.decay_dist = decay_dist
+
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field, adjusted by distance
+
+        Args:
+            layer (Layer)
+            bcube (BoundingCube)
+            mip (int)
+            dist (float)
+
+        Returns:
+            TorchField adjusted (blurred/attenuated) by distance
+        """
+        # TODO: add ability to get blurred field using trilinear interpolation
+        c = min(max(1.0 - (dist / self.decay_dist), 0.0), 1.0)
+        corgie_logger.debug(f"get_field, c={c}")
+        # TODO: ignore getting field if c==0
+        # corgie_logger.debug(f"\tlayer={layer}")
+        # corgie_logger.debug(f"\tbcube={bcube}")
+        # corgie_logger.debug(f"\tmip={mip}")
+        for k, v in kwargs.items():
+            corgie_logger.debug(f"\t{k}={v}")
+
+        f = layer.read(bcube=bcube, mip=mip, **kwargs).field_()
+        return f * c
