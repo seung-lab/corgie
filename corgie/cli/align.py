@@ -67,17 +67,35 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
 @corgie_option("--coord_mip", nargs=1, type=int, default=0)
 @corgie_optgroup("Block Alignment Specification")
-@corgie_option("--bad_starter_path", nargs=1, type=str, default=None)
+@corgie_option(
+    "--bad_starter_path",
+    nargs=1,
+    type=str,
+    default=None,
+    help="TODO: Filepath to list of sections that should not be used as the first section of any block.",
+)
 @corgie_option("--block_size", nargs=1, type=int, default=10)
 @corgie_option(
     "--stitch_size",
     nargs=1,
     type=int,
     default=3,
-    help="Number of sections involved in computing stitching fields.",
+    help="The number of sections used to compute stitching fields. If >1, then multiple stitching field estimates will be made, then corrected by voting.",
 )
-@corgie_option("--vote_dist", nargs=1, type=int, default=1)
-@corgie_option("--decay_dist", nargs=1, type=int, default=100)
+@corgie_option(
+    "--vote_dist",
+    nargs=1,
+    type=int,
+    default=1,
+    help="The number of previous sections for which fields will be estimated, then corrected by voting.",
+)
+@corgie_option(
+    "--decay_dist",
+    nargs=1,
+    type=int,
+    default=100,
+    help="The maximum distance in sections over which a previous section may influence a later one.",
+)
 @corgie_option(
     "--restart_stage",
     nargs=1,
@@ -290,14 +308,10 @@ def align(
 
     # Add in the stitch_estimated fields that were just created above
     even_stack.create_sublayer(
-        stitch_estimated_name,
-        layer_type="field",
-        overwrite=False,
+        stitch_estimated_name, layer_type="field", overwrite=False,
     )
     odd_stack.create_sublayer(
-        stitch_estimated_name,
-        layer_type="field",
-        overwrite=False,
+        stitch_estimated_name, layer_type="field", overwrite=False,
     )
     if restart_stage <= 2:
         if stitch_size > 1:
@@ -330,14 +344,10 @@ def align(
 
     # Add in the block-align fields
     even_stack.create_sublayer(
-        block_field_name,
-        layer_type="field",
-        overwrite=False,
+        block_field_name, layer_type="field", overwrite=False,
     )
     odd_stack.create_sublayer(
-        block_field_name,
-        layer_type="field",
-        overwrite=False,
+        block_field_name, layer_type="field", overwrite=False,
     )
     composed_field = dst_stack.create_sublayer(
         f"composed_field{suffix}", layer_type="field", overwrite=True
