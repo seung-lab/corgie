@@ -6,6 +6,7 @@
 # section is a stack with thickness == 1
 import copy
 import os
+import math
 
 import six
 
@@ -250,12 +251,12 @@ class FieldSet:
         agg_field = self.get_field(
             layer=layer, bcube=abcube, mip=mip, dist=src_z - z, **kwargs
         )
-
         for z, layer in zip(z_list[1:], self.layers[1:]):
             trans = helpers.percentile_trans_adjuster(agg_field)
+            corgie_logger.debug(f"{trans} initial")
             trans = trans.round_to_mip(mip, layer.data_mip)
-            corgie_logger.debug(f"{trans}")
-            abcube = abcube.reset_coords(zs=z, ze=z + 1, in_place=True)
+            corgie_logger.debug(f"{trans} round from M{mip} to M{layer.data_mip}")
+            abcube.reset_coords(zs=z, ze=z + 1, in_place=True)
             abcube = abcube.translate(x_offset=trans.y, y_offset=trans.x, mip=mip)
             trans = trans.to_tensor(device=agg_field.device)
             agg_field -= trans
@@ -271,9 +272,8 @@ class FieldSet:
 
 
 class DistanceFieldSet(FieldSet):
-    """Compose set of fields, adjusting fields based on distance from source"""
-
     def __init__(self, decay_dist, layers=[]):
+        """Compose set of fields, linearly scaling fields based on distance from source"""
         super().__init__(layers)
         self.decay_dist = decay_dist
 
@@ -300,4 +300,56 @@ class DistanceFieldSet(FieldSet):
             corgie_logger.debug(f"\t{k}={v}")
 
         f = layer.read(bcube=bcube, mip=mip, **kwargs).field_()
+        return f * c
+
+
+class PyramidDistanceFieldSet(FieldSet):
+    def __init__(self, decay_dist, blur_rate, layers=[]):
+        """Compose set of fields, linearly scaling & blurring fields based on distance
+        from source.
+
+        Requires that the field be downsampled into MIP-pyramid by factors of 2.
+
+        NOTE: We are currently generating field pyramids with a box filter. We may want
+        to change this to a Gaussian for a more precise filtering.
+
+        Args:
+            decay_dist (float): distance beyond which a field does not influence a neighbor
+            blur_rate (float): change in downsample factor based on distance. Can be considered,
+                the change in size of std of gaussian kernel per single section, although we
+                currently use a box filter. For example, if the std doubles every 10 sections,
+                blur_rate = 0.2.
+        """
+        super().__init__(layers)
+        self.decay_dist = decay_dist
+        self.blur_rate = blur_rate
+
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field, adjusted by distance
+
+        Args:
+            layer (Layer)
+            bcube (BoundingCube)
+            mip (int)
+            dist (float)
+
+        Returns:
+            TorchField adjusted (blurred & attenuated) by distance
+        """
+        c = min(max(1.0 - (dist / self.decay_dist), 0.0), 1.0)
+        sigma_mip = math.log(dist * self.blur_rate + 1, 2)
+        lower_mip = math.floor(sigma_mip)
+        upper_mip = math.ceil(sigma_mip)
+        corgie_logger.debug(
+            f"get_field, c={c:.3f}, mip={sigma_mip+mip:.3f}, lower_mip={lower_mip+mip}, upper_mip={upper_mip+mip}"
+        )
+        if lower_mip == upper_mip:
+            f = layer.read(bcube=bcube, mip=lower_mip + mip, **kwargs).field_()
+        else:
+            lf = layer.read(bcube=bcube, mip=lower_mip + mip, **kwargs).field_()
+            uf = layer.read(bcube=bcube, mip=upper_mip + mip, **kwargs).field_()
+            uf = uf.up(mips=1) * 2
+            alpha = sigma_mip - lower_mip
+            f = alpha * lf + (1 - alpha) * uf
+        f = f.up(mips=lower_mip) * (2 ** lower_mip)
         return f * c
