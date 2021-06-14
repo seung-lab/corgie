@@ -40,7 +40,7 @@ class BaseLayerType:
         # TODO: if np type is unit32, convert it to int64
         if data_np.dtype == np.uint32:
             data_np = data_np.astype(np.int64)
-        data_tens = torch.as_tensor(data_np, device=kwargs.get('device', None))
+        data_tens = torch.as_tensor(data_np, device=kwargs.get('device', self.device))
         data_tens = helpers.cast_tensor_type(data_tens, dtype)
         return data_tens
 
