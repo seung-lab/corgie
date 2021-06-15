@@ -209,9 +209,9 @@ class ComputeFieldTask(scheduling.Task):
         )
 
         # Compensate if target was moved to one side a lot
-        tgt_drift = helpers.percentile_trans_adjuster(
-            tgt_data_dict["tgt_agg_field"], unaligned_img=tgt_data_dict["tgt_img"]
-        )
+        # tgt_drift = helpers.percentile_trans_adjuster(
+        #     tgt_data_dict["tgt_agg_field"], unaligned_img=tgt_data_dict["tgt_img"]
+        # )
         tgt_drift = helpers.Translation(0, 0)
         corgie_logger.debug(f"Read source")
         src_translation, src_data_dict = self.src_stack.read_data_dict(

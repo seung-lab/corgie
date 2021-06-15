@@ -84,6 +84,7 @@ class AlignBlockJob(scheduling.Job):
             starter_section_start = z_start
         z_range = range(starter_section_start, z_end, z_step)
 
+        tgt_stack = deepcopy(self.dst_stack)
         field_dir = f"field{self.suffix}"
         final_field = self.dst_stack.create_sublayer(
             field_dir, layer_type="field", overwrite=True
@@ -115,7 +116,7 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Copy section {z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=self.dst_stack,
+                    dst_stack=tgt_stack,
                     bcube=bcube,
                     mips=self.cf_method.processor_mip,
                     blackout_masks=True,
@@ -145,7 +146,7 @@ class AlignBlockJob(scheduling.Job):
                     # This could mean a reduntant render step, but that's fine
                     render_job = self.render_method(
                         src_stack=self.src_stack,
-                        dst_stack=self.dst_stack,
+                        dst_stack=tgt_stack,
                         bcube=bcube,
                         blackout_masks=False,
                         preserve_zeros=True,
@@ -159,7 +160,7 @@ class AlignBlockJob(scheduling.Job):
                     # Now, we'll apply misalignment detection to produce a mask
                     # this mask will be used in the final render step
                     seethrough_mask_job = self.seethrough_method(
-                        src_stack=self.dst_stack,  # we're looking for misalignments in the final stack
+                        src_stack=tgt_stack,  # we're looking for misalignments in the final stack
                         bcube=bcube,
                         tgt_z_offset=offset,
                         suffix=self.suffix,
@@ -176,7 +177,7 @@ class AlignBlockJob(scheduling.Job):
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
                         mip_end=max(self.cf_method.processor_mip),
-                        bcube=self.bcube,
+                        bcube=bcube,
                     )
                     upsample_job = UpsampleJob(
                         src_layer=seethrough_mask_layer,
@@ -184,13 +185,13 @@ class AlignBlockJob(scheduling.Job):
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
                         mip_end=min(self.cf_method.processor_mip),
-                        bcube=self.bcube,
+                        bcube=bcube,
                     )
 
                 corgie_logger.debug(f"Render vote starter {z_start}<{z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=self.dst_stack,
+                    dst_stack=tgt_stack,
                     bcube=bcube,
                     blackout_masks=True,
                     seethrough_mask_layer=seethrough_mask_layer,
@@ -208,7 +209,7 @@ class AlignBlockJob(scheduling.Job):
                         corgie_logger.debug(f"Compute field {z+offset}<{z}")
                         compute_field_job = self.cf_method(
                             src_stack=self.src_stack,
-                            tgt_stack=self.dst_stack,
+                            tgt_stack=tgt_stack,
                             bcube=bcube,
                             tgt_z_offset=offset,
                             suffix=self.suffix,
@@ -223,7 +224,7 @@ class AlignBlockJob(scheduling.Job):
                     corgie_logger.debug(f"Compute final field field {z+offset}<{z}")
                     compute_field_job = self.cf_method(
                         src_stack=self.src_stack,
-                        tgt_stack=self.dst_stack,
+                        tgt_stack=tgt_stack,
                         bcube=bcube,
                         tgt_z_offset=offset,
                         suffix=self.suffix,
@@ -239,7 +240,7 @@ class AlignBlockJob(scheduling.Job):
                     corgie_logger.debug(f"Vote {z}")
                     chunk_xy = self.cf_method["chunk_xy"]
                     chunk_z = self.cf_method["chunk_z"]
-                    mip = self.cf_method["processor_mip"][0]
+                    mip = self.cf_method["processor_mip"][-1]
                     vote_job = VoteOverFieldsJob(
                         input_fields=estimated_fields,
                         output_field=final_field,
@@ -260,7 +261,7 @@ class AlignBlockJob(scheduling.Job):
                     # This could mean a reduntant render step, but that's fine
                     render_job = self.render_method(
                         src_stack=self.src_stack,
-                        dst_stack=self.dst_stack,
+                        dst_stack=tgt_stack,
                         bcube=bcube,
                         blackout_masks=False,
                         preserve_zeros=True,
@@ -274,7 +275,7 @@ class AlignBlockJob(scheduling.Job):
                     # Now, we'll apply misalignment detection to produce a mask
                     # this mask will be used in the final render step
                     seethrough_mask_job = self.seethrough_method(
-                        src_stack=self.dst_stack,  # we're looking for misalignments in the final stack
+                        src_stack=tgt_stack,  # we're looking for misalignments in the final stack
                         bcube=bcube,
                         tgt_z_offset=-z_step,
                         suffix=self.suffix,
@@ -291,7 +292,7 @@ class AlignBlockJob(scheduling.Job):
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
                         mip_end=max(self.cf_method.processor_mip),
-                        bcube=self.bcube,
+                        bcube=bcube,
                     )
                     upsample_job = UpsampleJob(
                         src_layer=seethrough_mask_layer,
@@ -299,7 +300,7 @@ class AlignBlockJob(scheduling.Job):
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
                         mip_end=min(self.cf_method.processor_mip),
-                        bcube=self.bcube,
+                        bcube=bcube,
                     )
 
                     if (
@@ -314,16 +315,30 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Render {z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=self.dst_stack,
+                    dst_stack=tgt_stack,
                     bcube=bcube,
                     blackout_masks=False,
                     seethrough_mask_layer=seethrough_mask_layer,
                     seethrough_offset=seethrough_offset,
-                    mips=self.cf_method.processor_mip,
+                    mips=min(self.cf_method.processor_mip),
                     additional_fields=[final_field],
                 )
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done
+
+                # We'll downsample the tgt_stack for one-pass
+                if min(self.cf_method.processor_mip) != max(self.cf_method.processor_mip):
+                    dst_layer = tgt_stack.get_layers_of_type("img")[0]
+                    downsample_job = DownsampleJob(
+                        src_layer=dst_layer,
+                        chunk_xy=self.cf_method.chunk_xy,
+                        chunk_z=1,
+                        mip_start=min(self.cf_method.processor_mip),
+                        mip_end=max(self.cf_method.processor_mip),
+                        bcube=bcube,
+                    )
+                    yield from downsample_job.task_generator
+                    yield scheduling.wait_until_done
 
 
 @click.command()
