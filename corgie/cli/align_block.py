@@ -143,7 +143,7 @@ class AlignBlockJob(scheduling.Job):
                     # This sequence can be bundled into a "seethrough render" job
 
                     # First, render the images at the md mip level
-                    # This could mean a reduntant render step, but that's fine
+                    # This could mean a redundant render step, but that's fine
                     render_job = self.render_method(
                         src_stack=self.src_stack,
                         dst_stack=tgt_stack,

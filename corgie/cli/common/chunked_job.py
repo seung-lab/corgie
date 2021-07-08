@@ -107,7 +107,7 @@ class BlendAccumulateTask(scheduling.Task):
 
 class ChunkedJob(scheduling.Job):
     """Job that applies the given task to the bcube in chunk.
-    Supports chunk blening"""
+    Supports chunk blending"""
 
     def __init__(
         self,
