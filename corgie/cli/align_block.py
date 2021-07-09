@@ -197,6 +197,7 @@ class AlignBlockJob(scheduling.Job):
                     seethrough_mask_layer=seethrough_mask_layer,
                     mips=self.cf_method.processor_mip,
                     additional_fields=[final_field],
+                    # seethrough_offset=seethrough_offset,
                 )
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done

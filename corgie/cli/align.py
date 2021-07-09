@@ -62,9 +62,12 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--pad", nargs=1, type=int, default=256)
 @corgie_option("--crop", nargs=1, type=int, default=None)
-@corgie_option("--seethrough_spec", nargs=1, type=str, default=None, multiple=True)
+@corgie_option("--seethrough_spec", nargs=1, type=str, 
+                default=None, multiple=True,
+                help="Seethrough method spec. Use multiple times to specify different methods (e.g. seethrough misalignments, seethrough black, etc.)")
+@corgie_option("--seethrough_limit", nargs=1, type=int, default=5, multiple=True,
+                help="For each seethrough method, how many sections are allowed to be seenthrough. 0 means no limit.")
 @corgie_option("--seethrough_spec_mip", nargs=1, type=int, default=None)
-@corgie_option("--seethrough_stop", nargs=1, type=int, default=5)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
@@ -143,6 +146,7 @@ def align(
     force_chunk_xy,
     suffix,
     seethrough_spec,
+    seethrough_limit,
     seethrough_spec_mip,
     decay_dist,
     blur_rate,
@@ -281,6 +285,7 @@ def align(
             chunk_xy=chunk_xy,
             pad=pad,
             crop=pad,
+            seethrough_limit=seethrough_limit,
         )
     else:
         seethrough_method = None
