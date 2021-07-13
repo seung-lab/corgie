@@ -1,5 +1,6 @@
 import click
 import os
+import math
 from corgie.block import get_blocks
 from copy import deepcopy
 
@@ -20,6 +21,7 @@ from corgie.argparsers import (
 from corgie.cli.align_block import AlignBlockJob
 from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
+from corgie.cli.downsample import DownsampleJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.compare_sections import CompareSectionsJob
 from corgie.cli.vote import VoteOverZJob
@@ -97,11 +99,25 @@ from corgie.cli.broadcast import BroadcastJob
     help="The maximum distance in sections over which a previous section may influence a later one.",
 )
 @corgie_option(
+    "--blur_rate",
+    nargs=1,
+    type=float,
+    default=0.2,
+    help="The increase in the size of downsample factor based on distance used in broadcasting a stitching field.",
+)
+@corgie_option(
     "--restart_stage",
     nargs=1,
     type=int,
     default=0,
     help="0: align blocks, 1: align overlaps, 2: vote over overlaps, 3: broadcast stitch field, 4: render with composed field",
+)
+@corgie_option(
+    "--restart_suffix",
+    nargs=1,
+    type=str,
+    default=None,
+    help="The suffix of a previous alignment run, which will be used as a starting point. New layers created after the restart will be labeld with --suffix",
 )
 @click.pass_context
 def align(
@@ -128,7 +144,9 @@ def align(
     seethrough_spec,
     seethrough_spec_mip,
     decay_dist,
+    blur_rate,
     restart_stage,
+    restart_suffix,
 ):
 
     scheduler = ctx.obj["scheduler"]
@@ -137,6 +155,8 @@ def align(
         suffix = "_aligned"
     else:
         suffix = f"_{suffix}"
+    if (restart_suffix is None) or (restart_stage == 0):
+        restart_suffix = suffix
 
     if crop is None:
         crop = pad
@@ -162,7 +182,7 @@ def align(
         name="dst",
         types=["img", "mask"],
         readonly=False,
-        suffix=suffix,
+        suffix=restart_suffix,
         force_chunk_xy=force_chunk_xy,
         overwrite=True,
     )
@@ -212,13 +232,25 @@ def align(
         corgie_logger.debug(f"Stitch {stitch_block}")
         corgie_logger.debug("\n")
 
-    # Set all field names
-    block_field_name = f"field{suffix}"
+    max_blur_mip = (
+        math.ceil(math.log(decay_dist * blur_rate + 1, 2)) + processor_mip[-1]
+    )
+    corgie_logger.debug(f"Max blur mip for stitching field: {max_blur_mip}")
+
+    # Set all field names, adjusting for restart suffix
+    block_field_name = f"field{restart_suffix}"
     stitch_estimated_suffix = f"_stitch_estimated{suffix}"
     stitch_estimated_name = f"field{stitch_estimated_suffix}"
     stitch_corrected_name = f"stitch_corrected{suffix}"
     stitch_corrected_field = None
     composed_name = f"composed{suffix}"
+    if restart_stage <= 2:
+        stitch_estimated_suffix = f"_stitch_estimated{restart_suffix}"
+        stitch_estimated_name = f"field{stitch_estimated_suffix}"
+    if restart_stage <= 3:
+        stitch_corrected_name = f"stitch_corrected{restart_suffix}"
+    if restart_stage <= 4:
+        composed_name = f"composed{restart_suffix}"
 
     render_method = helpers.PartialSpecification(
         f=RenderJob,
@@ -308,16 +340,20 @@ def align(
 
     # Add in the stitch_estimated fields that were just created above
     even_stack.create_sublayer(
-        stitch_estimated_name, layer_type="field", overwrite=False,
+        stitch_estimated_name,
+        layer_type="field",
+        overwrite=False,
     )
     odd_stack.create_sublayer(
-        stitch_estimated_name, layer_type="field", overwrite=False,
+        stitch_estimated_name,
+        layer_type="field",
+        overwrite=False,
     )
     if restart_stage <= 2:
         if stitch_size > 1:
             corgie_logger.debug("Voting over stitching blocks")
             stitch_corrected_field = dst_stack.create_sublayer(
-                f"stitch_corrected{suffix}", layer_type="field", overwrite=True
+                stitch_corrected_name, layer_type="field", overwrite=True
             )
             for stitch_block in stitch_blocks:
                 stitch_estimated_field = stitch_block.dst_stack[stitch_estimated_name]
@@ -330,7 +366,7 @@ def align(
                     chunk_xy=chunk_xy,
                     bcube=block_bcube,
                     z_list=range(stitch_block.start, stitch_block.stop),
-                    mip=processor_mip[0],
+                    mip=processor_mip[-1],
                 )
                 scheduler.register_job(
                     vote_stitch_job,
@@ -340,21 +376,46 @@ def align(
             scheduler.execute_until_completion()
             corgie_logger.debug("Done!")
 
-    # TODO: downsample stitching fields, and use them in broadcasting by distance
+        for stitch_block in stitch_blocks:
+            block_bcube = bcube.reset_coords(
+                zs=stitch_block.start, ze=stitch_block.start + 1, in_place=False
+            )
+            field_to_downsample = stitch_block.dst_stack[stitch_estimated_name]
+            if stitch_corrected_field is not None:
+                field_to_downsample = stitch_corrected_field
+            downsample_field_job = DownsampleJob(
+                src_layer=field_to_downsample,
+                mip_start=processor_mip[-1],
+                mip_end=max_blur_mip,
+                bcube=block_bcube,
+                chunk_xy=chunk_xy,  # TODO: This probably needs to be modified at highest mips
+                chunk_z=1,
+                mips_per_task=2,
+            )
+            scheduler.register_job(
+                downsample_field_job,
+                job_name=f"Downsample stitching field {block_bcube}",
+            )
+        scheduler.execute_until_completion()
+        corgie_logger.debug("Done!")
 
     # Add in the block-align fields
     even_stack.create_sublayer(
-        block_field_name, layer_type="field", overwrite=False,
+        block_field_name,
+        layer_type="field",
+        overwrite=False,
     )
     odd_stack.create_sublayer(
-        block_field_name, layer_type="field", overwrite=False,
+        block_field_name,
+        layer_type="field",
+        overwrite=False,
     )
     composed_field = dst_stack.create_sublayer(
-        f"composed_field{suffix}", layer_type="field", overwrite=True
+        composed_name, layer_type="field", overwrite=True
     )
     if (restart_stage > 2) and (stitch_size > 1):
         stitch_corrected_field = dst_stack.create_sublayer(
-            f"stitch_corrected{suffix}", layer_type="field", overwrite=False
+            stitch_corrected_name, layer_type="field", overwrite=False
         )
     if restart_stage <= 3:
         corgie_logger.debug("Stitching blocks...")
@@ -385,8 +446,9 @@ def align(
                 bcube=block_bcube,
                 pad=pad,
                 z_list=z_list,
-                mip=processor_mip[0],
+                mip=processor_mip[-1],
                 decay_dist=decay_dist,
+                blur_rate=blur_rate,
             )
             scheduler.register_job(
                 broadcast_job, job_name=f"Broadcast {block} {block_bcube}"
@@ -403,7 +465,7 @@ def align(
             render_job = RenderJob(
                 src_stack=src_stack,
                 dst_stack=dst_stack,
-                mips=processor_mip[0],
+                mips=processor_mip[-1],
                 pad=pad,
                 bcube=block_bcube,
                 chunk_xy=chunk_xy,
@@ -422,7 +484,7 @@ def align(
             render_job = RenderJob(
                 src_stack=src_stack,
                 dst_stack=dst_stack,
-                mips=processor_mip[0],
+                mips=processor_mip[-1],
                 pad=pad,
                 bcube=block_bcube,
                 chunk_xy=chunk_xy,
