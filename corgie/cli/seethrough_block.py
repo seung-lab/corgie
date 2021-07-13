@@ -119,8 +119,22 @@ class SeethroughBlockJob(scheduling.Job):
 )
 @corgie_option("--suffix", nargs=1, type=str, default=None)
 @corgie_optgroup("Render Method Specification")
-@corgie_option("--seethrough_spec", nargs=1, type=str, default=None)
-@corgie_option("--seethrough_spec_mip", nargs=1, type=int, default=None)
+@corgie_option(
+    "--seethrough_spec",
+    nargs=1,
+    type=str,
+    default=None,
+    multiple=True,
+    help="Seethrough method spec. Use multiple times to specify different methods (e.g. seethrough misalignments, seethrough black, etc.)",
+)
+@corgie_option(
+    "--seethrough_limit",
+    nargs=1,
+    type=int,
+    default=None,
+    multiple=True,
+    help="For each seethrough method, how many sections are allowed to be seenthrough. 0 or None means no limit.",
+)
 @corgie_option("--chunk_xy", nargs=1, type=int, default=1024)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
@@ -137,6 +151,7 @@ def seethrough_block(
     coord_mip,
     suffix,
     seethrough_spec,
+    seethrough_limit,
     seethrough_spec_mip,
     force_chunk_z=1,
 ):
@@ -149,7 +164,9 @@ def seethrough_block(
 
     crop, pad = 0, 0
     corgie_logger.debug("Setting up layers...")
-    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
+    src_stack = create_stack_from_spec(
+        src_layer_spec, name="src", readonly=True
+    )
     src_stack.folder = dst_folder
     dst_stack = stack.create_stack_from_reference(
         reference_stack=src_stack,
@@ -175,6 +192,7 @@ def seethrough_block(
         chunk_xy=chunk_xy,
         pad=pad,
         crop=pad,
+        seethrough_limit=seethrough_limit,
     )
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
