@@ -62,7 +62,7 @@ matplotlib==3.4.2
 matplotlib-inline==0.1.2
 mazepa==0.1.0
 -e git+https://github.com/seung-lab/metroem.git@f31a5615a80e609307935a17683543579a5b803c#egg=metroem
--e git+https://github.com/supersergiy/modelhouse.git@03e2d38ae28d6f3a9fc9c7a6a6c49170bec8f66e1#egg=modelhouse
+-e git+https://github.com/supersergiy/modelhouse.git@3e2d38ae28d6f3a9fc9c7a6a6c49170bec8f66e1#egg=modelhouse
 multiprocess==0.70.12.2
 networkx==2.5.1
 numpy==1.21.0
