@@ -11,7 +11,7 @@ WORKDIR /opt/corgie
 RUN apt-get update \
   # Install dependencies
   && apt-get install -y --no-install-recommends \
-      libgtk2.0-dev language-pack-en \
+      libgtk2.0-dev language-pack-en build-essential \
   && pip install --no-cache-dir -r docs/requirements.txt \
   && pip install -e . \
   # Cleanup apt
