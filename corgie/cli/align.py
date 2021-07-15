@@ -292,7 +292,7 @@ def align(
         blend_xy=blend_xy,
         chunk_z=1,
     )
-    if seethrough_spec is not None:
+    if seethrough_spec != tuple():
         assert seethrough_spec_mip is not None
         seethrough_method = helpers.PartialSpecification(
             f=CompareSectionsJob,

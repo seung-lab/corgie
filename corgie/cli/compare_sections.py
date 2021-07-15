@@ -157,7 +157,6 @@ class CompareSectionsTask(scheduling.Task):
 
         result = processor(processor_input, output_key="result")
 
-        cropped_result = helpers.crop(result, self.crop)
         tgt_pixel_data = self.pixel_offset_layer.read(
             bcube=self.bcube.translate(z_offset=self.tgt_z_offset), mip=self.mip
         )
@@ -165,6 +164,8 @@ class CompareSectionsTask(scheduling.Task):
             bcube=self.bcube, mip=self.mip
         )
         written_mask_data = self.dst_layer.read(bcube=self.bcube, mip=self.mip)
+        result = result.to(device=written_mask_data.device)
+        cropped_result = helpers.crop(result, self.crop)
         if self.seethrough_limit > 0:
             seethrough_mask = (cropped_result > 0) & (
                 tgt_pixel_data < self.seethrough_limit

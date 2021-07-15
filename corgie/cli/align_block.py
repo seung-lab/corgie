@@ -482,7 +482,7 @@ def align_block(
         render_masks=False,
     )
 
-    if seethrough_spec is not None:
+    if seethrough_spec != tuple():
         assert seethrough_spec_mip is not None
 
         seethrough_method = helpers.PartialSpecification(
