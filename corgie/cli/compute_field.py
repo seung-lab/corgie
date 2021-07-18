@@ -1,5 +1,6 @@
 import click
 import procspec
+import torch
 
 from corgie import scheduling, argparsers, helpers, exceptions
 
@@ -198,6 +199,8 @@ class ComputeFieldTask(scheduling.Task):
         self.clear_nontissue_field = clear_nontissue_field
 
     def execute(self):
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         corgie_logger.debug(f"ComputeFieldTask")
         src_bcube = self.bcube.uncrop(self.pad, self.mip)
         tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)

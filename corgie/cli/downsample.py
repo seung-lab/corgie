@@ -1,4 +1,5 @@
 import click
+import torch
 
 from corgie import scheduling
 from corgie.log import logger as corgie_logger
@@ -12,7 +13,6 @@ from corgie.argparsers import (
     corgie_optgroup,
     corgie_option,
 )
-
 
 class DownsampleJob(scheduling.Job):
     def __init__(
@@ -88,6 +88,8 @@ class DownsampleTask(scheduling.Task):
 
     def execute(self):
         src_data = self.src_layer.read(bcube=self.bcube, mip=self.mip_start)
+        if src_data.device == torch.device('cuda'):
+            torch.cuda.empty_cache()
         # How to downsample depends on layer type.
         # Images are avg pooled, masks are max pooled, segmentation is...
         downsampler = self.src_layer.get_downsampler()
