@@ -96,6 +96,7 @@ class Stack(StackBase):
         suffix="",
         reference=None,
         attach_to_stack=True,
+        custom_folder=None,
         **kwargs,
     ):
         if self.folder is None:
@@ -113,7 +114,8 @@ class Stack(StackBase):
         if reference is None:
             reference = self.reference_layer
 
-        path = os.path.join(self.folder, layer_type, f"{name}{suffix}")
+        folder = custom_folder or self.folder 
+        path = os.path.join(folder, layer_type, f"{name}{suffix}")
         l = reference.backend.create_layer(
             path=path,
             layer_type=layer_type,
