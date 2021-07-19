@@ -93,7 +93,7 @@ from corgie.cli.broadcast import BroadcastJob
     nargs=1,
     type=str,
     default=None,
-    help="TODO: Filepath to list of sections that should not be used as the first section of any block.",
+    help="Filepath to list of sections that should not be used as the first section of any block.",
 )
 @corgie_option("--block_size", nargs=1, type=int, default=10)
 @corgie_option(
@@ -236,13 +236,18 @@ def align(
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     corgie_logger.debug("Calculating blocks...")
-    # TODO: read in bad starter sections
+    skip_list = []
+    with open(bad_starter_path) as f:
+        line = f.readline()
+        while line:
+            skip_list.append(int(line))
+            line = f.readline()
     blocks = get_blocks(
         start=bcube.z_range()[0],
         stop=bcube.z_range()[1],
         block_size=block_size,
         block_overlap=0,
-        skip_list=[],
+        skip_list=skip_list,
         src_stack=src_stack,
         even_stack=even_stack,
         odd_stack=odd_stack,
