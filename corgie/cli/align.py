@@ -237,11 +237,12 @@ def align(
 
     corgie_logger.debug("Calculating blocks...")
     skip_list = []
-    with open(bad_starter_path) as f:
-        line = f.readline()
-        while line:
-            skip_list.append(int(line))
+    if bad_starter_path is not None:
+        with open(bad_starter_path) as f:
             line = f.readline()
+            while line:
+                skip_list.append(int(line))
+                line = f.readline()
     blocks = get_blocks(
         start=bcube.z_range()[0],
         stop=bcube.z_range()[1],
