@@ -87,7 +87,8 @@ class ComputeFieldJob(scheduling.Job):
                 proc_field_layer_name = f"align_field_stage_{i}{self.suffix}"
                 intermediary_fields.append(proc_field_layer_name)
                 proc_field_layer = self.src_stack.create_sublayer(
-                    proc_field_layer_name, layer_type="field", overwrite=True
+                    proc_field_layer_name, layer_type="field", overwrite=True,
+                    custom_folder=self.dst_layer.path
                 )
 
                 # In case this field is already written during previous runs,
@@ -219,7 +220,6 @@ class ComputeFieldTask(scheduling.Task):
         )
         # translation_adjuster=helpers.percentile_trans_adjuster)
         # )
-
         processor_input = {**src_data_dict, **tgt_data_dict}
 
         corgie_logger.debug(f"Compute field")

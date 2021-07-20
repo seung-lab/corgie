@@ -89,10 +89,20 @@ class Stack(StackBase):
         for l in layer_list:
             self.add_layer(l)
 
-    def create_sublayer(self, name, layer_type, suffix="", reference=None, **kwargs):
+    def create_sublayer(
+        self,
+        name,
+        layer_type,
+        suffix="",
+        reference=None,
+        attach_to_stack=True,
+        custom_folder=None,
+        **kwargs,
+    ):
         if self.folder is None:
             raise exceptions.CorgieException(
-                "Stack must have 'folder' field set " "before sublayers can be created"
+                "Stack must have 'folder' field set "
+                "before sublayers can be created"
             )
 
         if self.reference_layer is None and reference is None:
@@ -104,12 +114,34 @@ class Stack(StackBase):
         if reference is None:
             reference = self.reference_layer
 
-        path = os.path.join(self.folder, layer_type, f"{name}{suffix}")
+        folder = custom_folder or self.folder 
+        path = os.path.join(folder, layer_type, f"{name}{suffix}")
         l = reference.backend.create_layer(
-            path=path, layer_type=layer_type, name=name, reference=reference, **kwargs
+            path=path,
+            layer_type=layer_type,
+            name=name,
+            reference=reference,
+            **kwargs,
         )
-        self.add_layer(l)
+        if attach_to_stack:
+            self.add_layer(l)
         return l
+
+    def create_unattached_sublayer(
+        self, name, layer_type, suffix="", reference=None, **kwargs
+    ):
+        """
+        Create a sublayer that does not get added to the stack.
+        Make separate function for the sake of readability.
+        """
+        return self.create_sublayer(
+            name,
+            layer_type,
+            suffix=suffix,
+            reference=reference,
+            attach_to_stack=False,
+            **kwargs,
+        )
 
     def read_data_dict(
         self,
