@@ -55,14 +55,33 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--render_pad", nargs=1, type=int, default=512)
 @corgie_option("--render_chunk_xy", nargs=1, type=int, default=1024)
 @corgie_optgroup("Compute Field Method Specification")
-@corgie_option("--processor_spec", nargs=1, type=str, required=True, multiple=True)
-@corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
+@corgie_option(
+    "--processor_spec", nargs=1, type=str, required=True, multiple=True
+)
+@corgie_option(
+    "--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True
+)
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--pad", nargs=1, type=int, default=256)
 @corgie_option("--crop", nargs=1, type=int, default=None)
-@corgie_option("--seethrough_spec", nargs=1, type=str, default=None)
+@corgie_option(
+    "--seethrough_spec",
+    nargs=1,
+    type=str,
+    default=None,
+    multiple=True,
+    help="Seethrough method spec. Use multiple times to specify different methods (e.g. seethrough misalignments, seethrough black, etc.)",
+)
+@corgie_option(
+    "--seethrough_limit",
+    nargs=1,
+    type=int,
+    default=None,
+    multiple=True,
+    help="For each seethrough method, how many sections are allowed to be seenthrough. 0 or None means no limit.",
+)
 @corgie_option("--seethrough_spec_mip", nargs=1, type=int, default=None)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
@@ -74,7 +93,7 @@ from corgie.cli.broadcast import BroadcastJob
     nargs=1,
     type=str,
     default=None,
-    help="TODO: Filepath to list of sections that should not be used as the first section of any block.",
+    help="Filepath to list of sections that should not be used as the first section of any block.",
 )
 @corgie_option("--block_size", nargs=1, type=int, default=10)
 @corgie_option(
@@ -142,6 +161,7 @@ def align(
     force_chunk_xy,
     suffix,
     seethrough_spec,
+    seethrough_limit,
     seethrough_spec_mip,
     decay_dist,
     blur_rate,
@@ -170,7 +190,9 @@ def align(
 
     corgie_logger.debug("Setting up layers...")
 
-    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
+    src_stack = create_stack_from_spec(
+        src_layer_spec, name="src", readonly=True
+    )
     src_stack.folder = dst_folder
 
     if force_chunk_xy is None:
@@ -214,13 +236,19 @@ def align(
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     corgie_logger.debug("Calculating blocks...")
-    # TODO: read in bad starter sections
+    skip_list = []
+    if bad_starter_path is not None:
+        with open(bad_starter_path) as f:
+            line = f.readline()
+            while line:
+                skip_list.append(int(line))
+                line = f.readline()
     blocks = get_blocks(
         start=bcube.z_range()[0],
         stop=bcube.z_range()[1],
         block_size=block_size,
         block_overlap=0,
-        skip_list=[],
+        skip_list=skip_list,
         src_stack=src_stack,
         even_stack=even_stack,
         odd_stack=odd_stack,
@@ -270,9 +298,8 @@ def align(
         blend_xy=blend_xy,
         chunk_z=1,
     )
-    if seethrough_spec is not None:
+    if seethrough_spec != tuple():
         assert seethrough_spec_mip is not None
-
         seethrough_method = helpers.PartialSpecification(
             f=CompareSectionsJob,
             mip=seethrough_spec_mip,
@@ -280,6 +307,7 @@ def align(
             chunk_xy=chunk_xy,
             pad=pad,
             crop=pad,
+            seethrough_limit=seethrough_limit,
         )
     else:
         seethrough_method = None
@@ -305,7 +333,8 @@ def align(
                 backward=False,
             )
             scheduler.register_job(
-                align_block_job_forv, job_name=f"Forward Align {block} {block_bcube}"
+                align_block_job_forv,
+                job_name=f"Forward Align {block} {block_bcube}",
             )
 
         scheduler.execute_until_completion()
@@ -356,9 +385,13 @@ def align(
                 stitch_corrected_name, layer_type="field", overwrite=True
             )
             for stitch_block in stitch_blocks:
-                stitch_estimated_field = stitch_block.dst_stack[stitch_estimated_name]
+                stitch_estimated_field = stitch_block.dst_stack[
+                    stitch_estimated_name
+                ]
                 block_bcube = bcube.reset_coords(
-                    zs=stitch_block.start, ze=stitch_block.start + 1, in_place=False
+                    zs=stitch_block.start,
+                    ze=stitch_block.start + 1,
+                    in_place=False,
                 )
                 vote_stitch_job = VoteOverZJob(
                     input_field=stitch_estimated_field,
