@@ -1,4 +1,5 @@
 import json
+import math
 
 import click
 import torch
@@ -99,6 +100,8 @@ class MergeRenderImageTask(scheduling.Task):
 
     def execute(self):
         device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Field padding
         padded_bcube = self.bcube.uncrop(self.pad, self.mip)
         for k, specs in enumerate(self.src_specs[::-1]):
             src_z = specs["src_z"]
@@ -119,16 +122,29 @@ class MergeRenderImageTask(scheduling.Task):
             )
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
 
+            # Extend image/mask cutout to account for field spread
+            render_pad = int((field.max_vector() - field.min_vector()).max().ceil().tensor().item())
+            snap_factor = 2 ** (max(self.mip, mask_layer.data_mip) - self.mip)
+            render_pad = math.ceil(render_pad / snap_factor) * snap_factor
+            render_pad = min(render_pad, 2048)  # Safety
+
+            render_bcube = bcube.uncrop(render_pad, self.mip)
+            corgie_logger.debug(f"render_pad: {render_pad}")
+
+            # Move image/mask cutout to account for field drift
             img_trans = helpers.percentile_trans_adjuster(field)
             mask_trans = img_trans.round_to_mip(self.mip, mask_layer.data_mip)
             corgie_logger.debug(f"img_trans: {img_trans} | mask_trans: {mask_trans}")
 
-            img_bcube = bcube.translate(
+            img_bcube = render_bcube.translate(
                 x_offset=img_trans.y, y_offset=img_trans.x, mip=self.mip
             )
-            mask_bcube = bcube.translate(
+            mask_bcube = render_bcube.translate(
                 x_offset=mask_trans.y, y_offset=mask_trans.x, mip=self.mip
             )
+
+            if render_pad > 0:
+                field = torch.nn.functional.pad(field, [render_pad, render_pad, render_pad, render_pad], mode='replicate')
 
             corgie_logger.info(f"Load masks for {mask_bcube}")
             mask_id = specs["mask_id"]
@@ -138,7 +154,7 @@ class MergeRenderImageTask(scheduling.Task):
                 mask.float(), field - mask_trans.to_tensor(device=field.device)
             ).tensor()
             mask = (mask > 0.4).bool()
-            cropped_mask = helpers.crop(mask, self.pad)
+            cropped_mask = helpers.crop(mask, self.pad + render_pad)
 
             corgie_logger.info(f"Load image for {img_bcube}")
             if cropped_mask.sum() == 0:
@@ -149,7 +165,7 @@ class MergeRenderImageTask(scheduling.Task):
                 img = residuals.res_warp_img(
                     img.float(), field - img_trans.to_tensor(device=field.device)
                 )
-                cropped_img = helpers.crop(img, self.pad)
+                cropped_img = helpers.crop(img, self.pad + render_pad)
 
             # write to composite image
             if k == 0:
