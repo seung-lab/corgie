@@ -175,6 +175,7 @@ class MergeRenderMaskTask(MergeRenderImageTask):
     """
 
     def execute(self):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         padded_bcube = self.bcube.uncrop(self.pad, self.mip)
         for k, specs in enumerate(self.src_specs[::-1]):
             src_z = specs["src_z"]
@@ -190,7 +191,9 @@ class MergeRenderMaskTask(MergeRenderImageTask):
             corgie_logger.info(f"field ids={field_ids}")
             z_list = specs.get("src_field_z", [src_z] * len(field_ids))
             fields = FieldSet([self.src_layers[n] for n in field_ids])
-            field = fields.read(bcube=padded_bcube, z_list=z_list, mip=self.mip)
+            field = fields.read(
+                bcube=padded_bcube, z_list=z_list, mip=self.mip, device=device
+            )
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
 
             mask_trans = helpers.percentile_trans_adjuster(field)
@@ -204,9 +207,9 @@ class MergeRenderMaskTask(MergeRenderImageTask):
             corgie_logger.info(f"Load masks for {mask_bcube}")
             mask_id = specs["mask_id"]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
-            mask = mask_layer.read(bcube=mask_bcube, mip=self.mip)
+            mask = mask_layer.read(bcube=mask_bcube, mip=self.mip, device=device)
             mask = residuals.res_warp_img(
-                mask.float(), field - mask_trans.to_tensor()
+                mask.float(), field - mask_trans.to_tensor(device=field.device)
             ).tensor()
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
@@ -218,7 +221,7 @@ class MergeRenderMaskTask(MergeRenderImageTask):
             else:
                 dst_img[cropped_mask] = cropped_mask[cropped_mask] * relabel_id
 
-        self.dst_layer.write(dst_img, bcube=self.bcube, mip=self.mip)
+        self.dst_layer.write(dst_img.cpu(), bcube=self.bcube, mip=self.mip)
 
 
 @click.command()
