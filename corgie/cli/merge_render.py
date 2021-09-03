@@ -242,6 +242,7 @@ class MergeRenderMaskTask(MergeRenderImageTask):
 )
 @corgie_optgroup("Render Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
+@corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--pad", nargs=1, type=int, default=512)
 @corgie_option("--mip", nargs=1, type=int, required=True)
 @corgie_optgroup("Data Region Specification")
@@ -259,6 +260,7 @@ def merge_render(
     start_coord,
     end_coord,
     coord_mip,
+    force_chunk_xy,
     mip,
     suffix,
 ):
@@ -274,13 +276,19 @@ def merge_render(
     # collect image paths
     # collect mask paths
 
+    if not force_chunk_xy:
+        force_chunk_xy = chunk_xy
+
     with open(spec_path, "r") as f:
         spec = json.load(f)
 
     src_layers = spec_to_layer_dict_readonly(spec["src"])
     reference_layer = src_layers[list(src_layers.keys())[0]]
     dst_layer = create_layer_from_dict(
-        {"path": dst_folder, "type": "img"}, reference=reference_layer, overwrite=True
+        {"path": dst_folder, "type": "img"},
+        reference=reference_layer,
+        force_chunk_xy=force_chunk_xy,
+        overwrite=True
     )
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
