@@ -21,6 +21,8 @@ from corgie.argparsers import (
 
 
 class ComputeStatsJob(scheduling.Job):
+    LAYERS = {}
+
     def __init__(
         self,
         src_layer,
@@ -51,17 +53,22 @@ class ComputeStatsJob(scheduling.Job):
         assert len(chunks) % self.bcube.z_size() == 0
         chunks_per_section = len(chunks) // self.bcube.z_size()
 
-        chunk_mean_layer = self.mean_layer.get_sublayer(
-            name="chunk_mean",
-            layer_type="section_value",
-            num_channels=chunks_per_section,
-        )
+        if (self.mean_layer.path, chunks_per_section) not in ComputeStatsJob.LAYERS:
+            chunk_mean_layer = self.mean_layer.get_sublayer(
+                name="chunk_mean",
+                layer_type="section_value",
+                num_channels=chunks_per_section)
+            ComputeStatsJob.LAYERS[(self.mean_layer.path, chunks_per_section)] = chunk_mean_layer
 
-        chunk_var_layer = self.var_layer.get_sublayer(
-            name="chunk_var",
-            layer_type="section_value",
-            num_channels=chunks_per_section,
-        )
+        if (self.var_layer.path, chunks_per_section) not in ComputeStatsJob.LAYERS:
+            chunk_var_layer = self.var_layer.get_sublayer(
+                name="chunk_var",
+                layer_type="section_value",
+                num_channels=chunks_per_section)
+            ComputeStatsJob.LAYERS[(self.var_layer.path, chunks_per_section)] = chunk_var_layer
+
+        chunk_mean_layer = ComputeStatsJob.LAYERS[(self.mean_layer.path, chunks_per_section)]
+        chunk_var_layer  = ComputeStatsJob.LAYERS[(self.var_layer.path, chunks_per_section)]
 
         chunks = self.src_layer.break_bcube_into_chunks(
             bcube=self.bcube,
