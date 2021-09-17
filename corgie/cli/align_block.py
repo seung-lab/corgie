@@ -266,8 +266,31 @@ class AlignBlockJob(scheduling.Job):
 
                 if self.seethrough_method is not None:
                     # This sequence can be bundled into a "seethrough render" job
+                    # First, adjust the field to the appropriate MIP for seethrough rendering
+                    if (self.cf_method["processor_mip"][-1] < self.seethrough_method.mip):
+                        downsample_job = DownsampleJob(
+                            src_layer=final_field,
+                            chunk_xy=self.cf_method["chunk_xy"],
+                            chunk_z=1,
+                            mip_start=self.cf_method["processor_mip"][-1],
+                            mip_end=self.seethrough_method.mip,
+                            bcube=bcube,
+                        )
+                        yield from downsample_job.task_generator
+                        yield scheduling.wait_until_done
+                    elif (self.cf_method["processor_mip"][-1] > self.seethrough_method.mip):
+                        upsample_job = UpsampleJob(
+                            src_layer=final_field,
+                            chunk_xy=self.cf_method["chunk_xy"],
+                            chunk_z=1,
+                            mip_start=self.cf_method["processor_mip"][-1],
+                            mip_end=self.seethrough_method.mip,
+                            bcube=bcube,
+                        )
+                        yield from upsample_job.task_generator
+                        yield scheduling.wait_until_done
 
-                    # First, render the images at the md mip level
+                    # Next, render the images at the md mip level
                     # This could mean a reduntant render step, but that's fine
                     render_job = self.render_method(
                         src_stack=self.src_stack,
