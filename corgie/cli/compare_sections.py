@@ -215,7 +215,7 @@ class CompareSectionsTask(scheduling.Task):
     required=True,
     help="Specification for the destination layer. Must be an image or mask type.",
 )
-@corgie_option("--reference_key", nargs=1, type=str, default="img")
+@corgie_option("--reference_key", nargs=1, type=str, default="image")
 @corgie_optgroup("Compute Field Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option(
@@ -275,7 +275,7 @@ def compare_sections(
 
     dst_layer = create_layer_from_spec(
         dst_layer_spec,
-        allowed_types=["img", "mask"],
+        allowed_types=["image", "mask"],
         default_type="field",
         readonly=False,
         caller_name="dst_layer",

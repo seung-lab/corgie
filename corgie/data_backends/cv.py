@@ -252,8 +252,8 @@ class CVLayerBase(BaseLayerBackend):
         return chunks
 
 
-@cv_backend.register_layer_type_backend("img")
-class CVImgLayer(CVLayerBase, layers.ImgLayer):
+@cv_backend.register_layer_type_backend("image")
+class CVImageLayer(CVLayerBase, layers.ImageLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
 

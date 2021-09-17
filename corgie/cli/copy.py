@@ -85,9 +85,9 @@ class CopyTask(scheduling.Task):
         else:
             mask = None
         if self.copy_masks:
-            write_layers = self.dst_stack.get_layers_of_type(["img", "mask"])
+            write_layers = self.dst_stack.get_layers_of_type(["image", "mask"])
         else:
-            write_layers = self.dst_stack.get_layers_of_type("img")
+            write_layers = self.dst_stack.get_layers_of_type("image")
 
         for l in write_layers:
             src = src_data_dict[f"src_{l.name}"]
@@ -172,7 +172,7 @@ def copy(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         force_chunk_xy=force_chunk_xy,

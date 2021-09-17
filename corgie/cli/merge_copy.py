@@ -82,8 +82,8 @@ class MergeCopyTask(scheduling.Task):
             src_trans, src_data_dict = self.src_stack.read_data_dict(
                 src_bcube, mip=self.mip, translation_adjuster=None, stack_name="src"
             )
-            img_name = self.src_stack.get_layers_of_type("img")[0].name
-            src_image = src_data_dict[f"src_{img_name}"]
+            image_name = self.src_stack.get_layers_of_type("image")[0].name
+            src_image = src_data_dict[f"src_{image_name}"]
             mask_name = self.src_stack.get_layers_of_type("mask")[0].name
             mask = src_data_dict[f"src_{mask_name}"]
             # mask_layers = src_stack.get_layers_of_type(["mask"])
@@ -94,7 +94,7 @@ class MergeCopyTask(scheduling.Task):
             else:
                 dst_image[mask] = src_image[mask]
 
-        dst_layer = self.dst_stack.get_layers_of_type("img")[0]
+        dst_layer = self.dst_stack.get_layers_of_type("image")[0]
         dst_layer.write(dst_image, bcube=self.bcube, mip=self.mip)
 
 
@@ -107,7 +107,7 @@ class MergeCopyTask(scheduling.Task):
     type=str,
     required=True,
     multiple=True,
-    help="Source layer spec. Order img, mask, img, mask, etc. List must have length of multiple two."
+    help="Source layer spec. Order image, mask, image, mask, etc. List must have length of multiple two."
     + LAYER_HELP_STR,
 )
 #
@@ -160,7 +160,7 @@ def merge_copy(
         src_stack = create_stack_from_spec(
             src_layer_spec[2 * k : 2 * k + 2], name="src", readonly=True
         )
-        name = src_stack.get_layers_of_type("img")[0].path
+        name = src_stack.get_layers_of_type("image")[0].path
         src_stacks[name] = src_stack
 
     with open(spec_path, "r") as f:
@@ -180,7 +180,7 @@ def merge_copy(
         reference_stack=list(src_stacks.values())[0],
         folder=dst_folder,
         name="dst",
-        types=["img"],
+        types=["image"],
         readonly=False,
         suffix=suffix,
         force_chunk_xy=None,

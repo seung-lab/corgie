@@ -184,7 +184,7 @@ def normalize(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img"],
+        types=["image"],
         readonly=False,
         suffix=suffix,
         overwrite=True,
@@ -192,12 +192,12 @@ def normalize(
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
-    img_layers = src_stack.get_layers_of_type("img")
+    image_layers = src_stack.get_layers_of_type("image")
     mask_layers = src_stack.get_layers_of_type("mask")
     field_layers = src_stack.get_layers_of_type("field")
     assert len(field_layers) == 0
 
-    for l in img_layers:
+    for l in image_layers:
         mean_layer = l.get_sublayer(
             name=f"mean_{l.name}{suffix}",
             path=os.path.join(dst_folder, f"mean_{l.name}{suffix}"),
@@ -230,7 +230,7 @@ def normalize(
 
         dst_layer = l.get_sublayer(
             name=f"{l.name}{suffix}",
-            path=os.path.join(dst_folder, "img", f"{l.name}{suffix}"),
+            path=os.path.join(dst_folder, "image", f"{l.name}{suffix}"),
             layer_type=l.get_layer_type(),
             dtype="float32",
             overwrite=True,

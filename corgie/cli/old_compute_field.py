@@ -205,7 +205,7 @@ class ComputeFieldTask(scheduling.Task):
     help="Specification for the destination layer. Must be a field type."
     + " DEFAULT: source reference key path + /field/cf_field + (_{suffix})?",
 )
-@corgie_option("--reference_key", nargs=1, type=str, default="img")
+@corgie_option("--reference_key", nargs=1, type=str, default="image")
 @corgie_optgroup("Compute Field Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)

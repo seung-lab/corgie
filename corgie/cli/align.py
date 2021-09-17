@@ -202,7 +202,7 @@ def align(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=restart_suffix,
         force_chunk_xy=force_chunk_xy,
@@ -213,7 +213,7 @@ def align(
         reference_stack=src_stack,
         folder=os.path.join(dst_folder, "even"),
         name="even",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         force_chunk_xy=force_chunk_xy,
@@ -224,7 +224,7 @@ def align(
         reference_stack=src_stack,
         folder=os.path.join(dst_folder, "odd"),
         name="odd",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         force_chunk_xy=force_chunk_xy,
@@ -533,7 +533,7 @@ def align(
         corgie_logger.debug("Done!")
 
     result_report = (
-        f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
-        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
+        f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('image')]}. "
+        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('image')]}"
     )
     corgie_logger.info(result_report)

@@ -19,8 +19,8 @@ class MergeRenderJob(scheduling.Job):
         """Render multiple images to the same destination image
 
         Args:
-            src_layers ({'img':{Layers},
-            src_specs (json): list of dicts with img, field, mask, z, & mask_id per island
+            src_layers ({'image':{Layers},
+            src_specs (json): list of dicts with image, field, mask, z, & mask_id per island
                 ranked by layer priority (first image overwrites later images)
             dst_layer (Stack)
             mip (int)
@@ -45,7 +45,7 @@ class MergeRenderJob(scheduling.Job):
             return_generator=True,
         )
 
-        if "src_img" in self.src_specs[0]:
+        if "src_image" in self.src_specs[0]:
             tasks = (
                 MergeRenderImageTask(
                     src_layers=self.src_layers,
@@ -82,7 +82,7 @@ class MergeRenderImageTask(scheduling.Task):
 
         Args:
             src_layers ({Layer})
-            src_specs (json): list of dicts with img, field, mask, z, & mask_id per island
+            src_specs (json): list of dicts with image, field, mask, z, & mask_id per island
                 ranked by layer priority (first image overwrites later images)
             dst_layer (Stack)
             mip (int)
@@ -119,12 +119,12 @@ class MergeRenderImageTask(scheduling.Task):
             )
             bcube = padded_bcube.reset_coords(zs=src_z, ze=src_z + 1, in_place=False)
 
-            img_trans = helpers.percentile_trans_adjuster(field)
-            mask_trans = img_trans.round_to_mip(self.mip, mask_layer.data_mip)
-            corgie_logger.debug(f"img_trans: {img_trans} | mask_trans: {mask_trans}")
+            image_trans = helpers.percentile_trans_adjuster(field)
+            mask_trans = image_trans.round_to_mip(self.mip, mask_layer.data_mip)
+            corgie_logger.debug(f"image_trans: {image_trans} | mask_trans: {mask_trans}")
 
-            img_bcube = bcube.translate(
-                x_offset=img_trans.y, y_offset=img_trans.x, mip=self.mip
+            image_bcube = bcube.translate(
+                x_offset=image_trans.y, y_offset=image_trans.x, mip=self.mip
             )
             mask_bcube = bcube.translate(
                 x_offset=mask_trans.y, y_offset=mask_trans.x, mip=self.mip
@@ -134,31 +134,31 @@ class MergeRenderImageTask(scheduling.Task):
             mask_id = specs["mask_id"]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
             mask = mask_layer.read(bcube=mask_bcube, mip=self.mip, device=device)
-            mask = residuals.res_warp_img(
+            mask = residuals.res_warp_image(
                 mask.float(), field - mask_trans.to_tensor(device=field.device)
             ).tensor()
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
 
-            corgie_logger.info(f"Load image for {img_bcube}")
+            corgie_logger.info(f"Load image for {image_bcube}")
             if cropped_mask.sum() == 0:
-                cropped_img = torch.zeros_like(cropped_mask, dtype=torch.float)
+                cropped_image = torch.zeros_like(cropped_mask, dtype=torch.float)
             else:
-                img_layer = self.src_layers[str(specs["src_img"])]
-                img = img_layer.read(bcube=img_bcube, mip=self.mip, device=device)
-                img = residuals.res_warp_img(
-                    img.float(), field - img_trans.to_tensor(device=field.device)
+                image_layer = self.src_layers[str(specs["src_image"])]
+                image = image_layer.read(bcube=image_bcube, mip=self.mip, device=device)
+                image = residuals.res_warp_image(
+                    image.float(), field - image_trans.to_tensor(device=field.device)
                 )
-                cropped_img = helpers.crop(img, self.pad)
+                cropped_image = helpers.crop(image, self.pad)
 
             # write to composite image
             if k == 0:
-                dst_img = cropped_img
-                dst_img[~cropped_mask] = 0
+                dst_image = cropped_image
+                dst_image[~cropped_mask] = 0
             else:
-                dst_img[cropped_mask] = cropped_img[cropped_mask]
+                dst_image[cropped_mask] = cropped_image[cropped_mask]
 
-        self.dst_layer.write(dst_img.cpu(), bcube=self.bcube, mip=self.mip)
+        self.dst_layer.write(dst_image.cpu(), bcube=self.bcube, mip=self.mip)
 
 
 class MergeRenderMaskTask(MergeRenderImageTask):
@@ -205,7 +205,7 @@ class MergeRenderMaskTask(MergeRenderImageTask):
             mask_id = specs["mask_id"]
             mask_layer.binarizer = helpers.Binarizer(["eq", mask_id])
             mask = mask_layer.read(bcube=mask_bcube, mip=self.mip)
-            mask = residuals.res_warp_img(
+            mask = residuals.res_warp_image(
                 mask.float(), field - mask_trans.to_tensor()
             ).tensor()
             mask = (mask > 0.4).bool()
@@ -213,12 +213,12 @@ class MergeRenderMaskTask(MergeRenderImageTask):
 
             relabel_id = torch.as_tensor(specs.get("relabel_id", k), dtype=torch.uint8)
             if k == 0:
-                dst_img = cropped_mask * relabel_id
-                dst_img[~cropped_mask] = 0
+                dst_image = cropped_mask * relabel_id
+                dst_image[~cropped_mask] = 0
             else:
-                dst_img[cropped_mask] = cropped_mask[cropped_mask] * relabel_id
+                dst_image[cropped_mask] = cropped_mask[cropped_mask] * relabel_id
 
-        self.dst_layer.write(dst_img, bcube=self.bcube, mip=self.mip)
+        self.dst_layer.write(dst_image, bcube=self.bcube, mip=self.mip)
 
 
 @click.command()
@@ -277,7 +277,7 @@ def merge_render(
     src_layers = spec_to_layer_dict_readonly(spec["src"])
     reference_layer = src_layers[list(src_layers.keys())[0]]
     dst_layer = create_layer_from_dict(
-        {"path": dst_folder, "type": "img"}, reference=reference_layer, overwrite=True
+        {"path": dst_folder, "type": "image"}, reference=reference_layer, overwrite=True
     )
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)

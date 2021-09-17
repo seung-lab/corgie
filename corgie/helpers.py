@@ -81,14 +81,14 @@ class Translation:
             return (self // snap_factor) * snap_factor
 
 
-def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
+def percentile_trans_adjuster(field, h=25, l=75, unaligned_image=None):
     if field is None:
         result = Translation(0, 0)
     else:
         nonzero_field_mask = (field[:, 0] != 0) & (field[:, 1] != 0)
 
-        if unaligned_img is not None:
-            no_tissue = field.field().from_pixels()(unaligned_img) == 0
+        if unaligned_image is not None:
+            no_tissue = field.field().from_pixels()(unaligned_image) == 0
             nonzero_field_mask[..., no_tissue.squeeze()] = False
 
         nonzero_field = field[..., nonzero_field_mask.squeeze()].squeeze()

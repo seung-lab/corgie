@@ -105,7 +105,7 @@ class AlignBlockJob(scheduling.Job):
                 overwrite=True,
             )
             pixel_offset_layer = tgt_stack.create_unattached_sublayer(
-                f"pixel_offset{self.suffix}", layer_type="img", overwrite=True
+                f"pixel_offset{self.suffix}", layer_type="image", overwrite=True
             )
         else:
             seethrough_mask_layer = None
@@ -342,7 +342,7 @@ class AlignBlockJob(scheduling.Job):
                 if min(self.cf_method.processor_mip) != max(
                     self.cf_method.processor_mip
                 ):
-                    dst_layer = tgt_stack.get_layers_of_type("img")[0]
+                    dst_layer = tgt_stack.get_layers_of_type("image")[0]
                     downsample_job = DownsampleJob(
                         src_layer=dst_layer,
                         chunk_xy=self.cf_method.chunk_xy,
@@ -467,7 +467,7 @@ def align_block(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         force_chunk_xy=force_chunk_xy,
@@ -572,7 +572,7 @@ def align_block(
 
     scheduler.execute_until_completion()
     result_report = (
-        f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
-        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
+        f"Aligned layers {[str(l) for l in src_stack.get_layers_of_type('image')]}. "
+        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('image')]}"
     )
     corgie_logger.info(result_report)

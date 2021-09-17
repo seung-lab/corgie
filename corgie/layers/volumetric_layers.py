@@ -99,8 +99,8 @@ class VolumetricLayer(BaseLayerType):
             return xy_chunks
 
 
-@register_layer_type("img")
-class ImgLayer(VolumetricLayer):
+@register_layer_type("image")
+class ImageLayer(VolumetricLayer):
     def __init__(self, *args, num_channels=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.num_channels = num_channels

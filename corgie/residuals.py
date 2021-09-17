@@ -1,18 +1,18 @@
 import torch
 
-def shift_by_int(img, x_shift, y_shift, is_res=False):
+def shift_by_int(image, x_shift, y_shift, is_res=False):
     if is_res:
-        img = img.permute(0, 3, 1, 2)
+        image = image.permute(0, 3, 1, 2)
 
-    x_shifted = torch.zeros_like(img)
+    x_shifted = torch.zeros_like(image)
     if x_shift > 0:
-        x_shifted[..., x_shift:, :]  = img[..., :-x_shift, :]
+        x_shifted[..., x_shift:, :]  = image[..., :-x_shift, :]
     elif x_shift < 0:
-        x_shifted[..., :x_shift, :]  = img[..., -x_shift:, :]
+        x_shifted[..., :x_shift, :]  = image[..., -x_shift:, :]
     else:
-        x_shifted = img.clone()
+        x_shifted = image.clone()
 
-    result = torch.zeros_like(img)
+    result = torch.zeros_like(image)
     if y_shift > 0:
         result[..., y_shift:]  = x_shifted[..., :-y_shift]
     elif y_shift < 0:
@@ -46,37 +46,37 @@ def res_warp_res(res_a, res_b, is_pix_res=True, permute_field=True):
     return result
 
 
-def res_warp_img(img, res_in, is_pix_res=True,
+def res_warp_image(image, res_in, is_pix_res=True,
         padding_mode='zeros', mode="bilinear",
         permute_field=True):
     if permute_field:
         res_in = res_in.permute(0, 2, 3, 1)
 
     if is_pix_res:
-        res = 2 * res_in / (img.shape[-1])
+        res = 2 * res_in / (image.shape[-1])
     else:
         res = res_in
-    if len(img.shape) == 4:
-        result = gridsample_residual(img, res, padding_mode=padding_mode, mode=mode)
-    elif len(img.shape) == 3:
+    if len(image.shape) == 4:
+        result = gridsample_residual(image, res, padding_mode=padding_mode, mode=mode)
+    elif len(image.shape) == 3:
         if len(res.shape) == 3:
-            result = gridsample_residual(img.unsqueeze(0),
+            result = gridsample_residual(image.unsqueeze(0),
                                          res.unsqueeze(0), padding_mode=padding_mode,
                                          mode=mode)[0]
         else:
-            img = img.unsqueeze(1)
-            result = gridsample_residual(img,
+            image = image.unsqueeze(1)
+            result = gridsample_residual(image,
                                          res,
                                          mode=mode,
                                          padding_mode=padding_mode).squeeze(1)
-    elif len(img.shape) == 2:
-        result = gridsample_residual(img.unsqueeze(0).unsqueeze(0),
+    elif len(image.shape) == 2:
+        result = gridsample_residual(image.unsqueeze(0).unsqueeze(0),
                                      res.unsqueeze(0),
                                      padding_mode=padding_mode,
                                      mode=mode)[0, 0]
     else:
         raise Exception("Image warping requires BxCxHxW or CxHxW format." +
-                        "Recieved dimensions: {}".format(len(img.shape)))
+                        "Recieved dimensions: {}".format(len(image.shape)))
 
     return result
 

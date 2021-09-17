@@ -211,7 +211,7 @@ class ComputeFieldTask(scheduling.Task):
 
         # Compensate if target was moved to one side a lot
         # tgt_drift = helpers.percentile_trans_adjuster(
-        #     tgt_data_dict["tgt_agg_field"], unaligned_img=tgt_data_dict["tgt_img"]
+        #     tgt_data_dict["tgt_agg_field"], unaligned_image=tgt_data_dict["tgt_image"]
         # )
         tgt_drift = helpers.Translation(0, 0)
         corgie_logger.debug(f"Read source")
@@ -263,7 +263,7 @@ class ComputeFieldTask(scheduling.Task):
     help="Specification for the destination layer. Must be a field type."
     + " DEFAULT: source reference key path + /field/cf_field + (_{suffix})?",
 )
-@corgie_option("--reference_key", nargs=1, type=str, default="img")
+@corgie_option("--reference_key", nargs=1, type=str, default="image")
 @corgie_optgroup("Compute Field Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)

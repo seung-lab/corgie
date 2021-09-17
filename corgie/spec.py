@@ -7,14 +7,14 @@ def spec_to_stack(spec, prefix, layers):
     """Create Stack by filtering a dict of layers
 
     Args:
-        spec (dict): job_specs including src_img, src_mask, etc.
+        spec (dict): job_specs including src_image, src_mask, etc.
         prefix (str): src/tgt/dst
         layers (dict): int-indexed dict of layers
 
     job_spec will include index of layer to be used for job
     """
     stack = Stack()
-    for suffix in ['img', 'mask', 'field']:
+    for suffix in ['image', 'mask', 'field']:
         spec_key = '{}_{}'.format(prefix, suffix)
         if spec_key in spec.keys():
             layer_id = str(spec[spec_key])
@@ -46,7 +46,7 @@ def spec_to_layer_dict_overwrite(layer_specs, reference_layer, default_type):
     Args:
         layer_specs (dict): layer specs indexed by unique id
         reference_layer (layer)
-        default_type (str): e.g. img, field
+        default_type (str): e.g. image, field
     """
     layers = {}
     for k, s in layer_specs.items():

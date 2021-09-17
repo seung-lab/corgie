@@ -99,7 +99,7 @@ def compute_field_by_spec(
             for job_spec in spec["job_specs"][spec_z]:
                 src_stack = spec_to_stack(job_spec, "src", src_layers)
                 tgt_stack = spec_to_stack(job_spec, "tgt", tgt_layers)
-                dst_layer = dst_layers[str(job_spec["dst_img"])]
+                dst_layer = dst_layers[str(job_spec["dst_image"])]
                 ps = json.loads(processor_spec[0])
                 ps["ApplyModel"]["params"]["val"] = job_spec["mask_id"]
                 ps["ApplyModel"]["params"]["scale"] = job_spec["scale"]

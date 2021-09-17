@@ -91,8 +91,8 @@ class FillNearestTask(scheduling.Task):
         _, src_data_dict = self.src_stack.read_data_dict(
             bcube=self.bcube, mip=self.mip, add_prefix=False, translation_adjuster=None,
         )
-        layer = self.dst_stack.get_layers_of_type("img")[0]
-        agg_img = src_data_dict[f"{layer.name}"]
+        layer = self.dst_stack.get_layers_of_type("image")[0]
+        agg_image = src_data_dict[f"{layer.name}"]
         agg_mask = self.get_masks(data_dict=src_data_dict, bcube=self.bcube)
         mask_count = agg_mask.sum()
         k = 0
@@ -105,13 +105,13 @@ class FillNearestTask(scheduling.Task):
             _, src_data_dict = self.src_stack.read_data_dict(
                 bcube=bcube, mip=self.mip, add_prefix=False, translation_adjuster=None,
             )
-            img = src_data_dict[f"{layer.name}"]
-            agg_img[agg_mask] = img[agg_mask]
+            image = src_data_dict[f"{layer.name}"]
+            agg_image[agg_mask] = image[agg_mask]
             mask = self.get_masks(data_dict=src_data_dict, bcube=bcube)
             agg_mask = (agg_mask == 1) * (mask == 1)
             mask_count = agg_mask.sum()
             k += 1
-        layer.write(agg_img, bcube=self.bcube, mip=self.mip)
+        layer.write(agg_image, bcube=self.bcube, mip=self.mip)
 
 
 @click.command()
@@ -172,7 +172,7 @@ def fill_nearest(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         overwrite=True,
@@ -195,8 +195,8 @@ def fill_nearest(
 
     scheduler.execute_until_completion()
     result_report = (
-        f"Rendered layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
-        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
+        f"Rendered layers {[str(l) for l in src_stack.get_layers_of_type('image')]}. "
+        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('image')]}"
     )
     corgie_logger.info(result_report)
 

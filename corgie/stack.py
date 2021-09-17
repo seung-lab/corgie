@@ -201,7 +201,7 @@ class Stack(StackBase):
             x_offset=translation.y, y_offset=translation.x, mip=mip
         )
 
-        for l in self.get_layers_of_type(["mask", "img"]):
+        for l in self.get_layers_of_type(["mask", "image"]):
             global_name = f"{name_prefix}{l.name}"
             data_dict[global_name] = l.read(bcube=final_bcube, mip=mip)
         return translation, data_dict

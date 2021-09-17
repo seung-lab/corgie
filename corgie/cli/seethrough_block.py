@@ -172,7 +172,7 @@ def seethrough_block(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         readonly=False,
         suffix=suffix,
         overwrite=True,
@@ -211,7 +211,7 @@ def seethrough_block(
 
     scheduler.execute_until_completion()
     result_report = (
-        f"Rendered layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
-        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
+        f"Rendered layers {[str(l) for l in src_stack.get_layers_of_type('image')]}. "
+        f"Results in {[str(l) for l in dst_stack.get_layers_of_type('image')]}"
     )
     corgie_logger.info(result_report)

@@ -164,7 +164,7 @@ class ApplyProcessorTask(scheduling.Task):
     required=False,
     help="JSON spec relating src stacks, src z to dst z",
 )
-@corgie_option("--reference_key", nargs=1, type=str, default="img")
+@corgie_option("--reference_key", nargs=1, type=str, default="image")
 @corgie_optgroup("Apply Processor Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)
@@ -211,8 +211,8 @@ def apply_processor(
 
     dst_layer = create_layer_from_spec(
         dst_layer_spec,
-        allowed_types=["img", "mask", "section_value"],
-        default_type="img",
+        allowed_types=["image", "mask", "section_value"],
+        default_type="image",
         readonly=False,
         caller_name="dst_layer",
         reference=reference_layer,

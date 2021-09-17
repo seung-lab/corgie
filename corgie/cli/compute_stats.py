@@ -314,7 +314,7 @@ def compute_stats_fn(
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     mask_layers = src_stack.get_layers_of_type(["mask"])
-    non_mask_layers = src_stack.get_layers_of_type(["img", "field"])
+    non_mask_layers = src_stack.get_layers_of_type(["image", "field"])
 
     for l in non_mask_layers:
         mean_layer = src_layer.get_sublayer(

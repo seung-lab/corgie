@@ -153,7 +153,7 @@ class RenderTask(scheduling.Task):
                 coarsen_factor = int(2 ** (6 - self.mip))
                 agg_mask = helpers.coarsen_mask(agg_mask, coarsen_factor)
                 if agg_field is not None:
-                    warped_mask = residuals.res_warp_img(agg_mask.float(), agg_field)
+                    warped_mask = residuals.res_warp_image(agg_mask.float(), agg_field)
                 else:
                     warped_mask = agg_mask
 
@@ -164,27 +164,27 @@ class RenderTask(scheduling.Task):
                 warped_mask = None
 
         if self.render_masks:
-            write_layers = self.dst_stack.get_layers_of_type(["img", "mask"])
+            write_layers = self.dst_stack.get_layers_of_type(["image", "mask"])
         else:
-            write_layers = self.dst_stack.get_layers_of_type("img")
+            write_layers = self.dst_stack.get_layers_of_type("image")
 
         for l in write_layers:
             src = src_data_dict[f"{l.name}"]
 
             if agg_field is not None:
-                warped_src = residuals.res_warp_img(src.float(), agg_field)
+                warped_src = residuals.res_warp_image(src.float(), agg_field)
             else:
                 warped_src = src
 
             cropped_out = helpers.crop(warped_src, self.pad)
 
-            if l.get_layer_type() == "img":
+            if l.get_layer_type() == "image":
                 if self.blackout_masks and warped_mask is not None:
                     cropped_out[warped_mask] = self.blackout_value
 
                 if self.preserve_zeros and agg_field is not None:
                     src_zero_mask = src == 0
-                    warped_zero_mask = residuals.res_warp_img(
+                    warped_zero_mask = residuals.res_warp_image(
                         src_zero_mask.float(), agg_field
                     )
                     warped_zero_mask = (warped_zero_mask > 0.4).byte()
@@ -287,7 +287,7 @@ def render(
         reference_stack=src_stack,
         folder=dst_folder,
         name="dst",
-        types=["img", "mask"],
+        types=["image", "mask"],
         force_chunk_xy=force_chunk_xy,
         force_chunk_z=force_chunk_z,
         suffix=suffix,
