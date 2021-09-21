@@ -288,7 +288,7 @@ class FieldSet:
             corgie_logger.debug(f"{trans} initial")
             trans = trans.round_to_mip(mip, layer.data_mip)
             corgie_logger.debug(f"{trans} round from M{mip} to M{layer.data_mip}")
-            abcube.reset_coords(zs=z, ze=z + 1, in_place=True)
+            abcube = bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             abcube = abcube.translate(x_offset=trans.y, y_offset=trans.x, mip=mip)
             trans = trans.to_tensor(device=agg_field.device)
             agg_field -= trans
