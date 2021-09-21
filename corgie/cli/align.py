@@ -266,7 +266,7 @@ def align(
     corgie_logger.debug(f"Max blur mip for stitching field: {max_blur_mip}")
 
     # Set all field names, adjusting for restart suffix
-    block_field_name = f"field{restart_suffix}"
+    block_field_name = f"field{suffix}"
     stitch_estimated_suffix = f"_stitch_estimated{suffix}"
     stitch_estimated_name = f"field{stitch_estimated_suffix}"
     stitch_corrected_name = f"stitch_corrected{suffix}"
@@ -275,9 +275,8 @@ def align(
     if restart_stage <= 2:
         stitch_estimated_suffix = f"_stitch_estimated{restart_suffix}"
         stitch_estimated_name = f"field{stitch_estimated_suffix}"
-    if restart_stage <= 3:
         stitch_corrected_name = f"stitch_corrected{restart_suffix}"
-    if restart_stage <= 4:
+    if restart_stage <= 3:
         composed_name = f"composed{restart_suffix}"
 
     render_method = helpers.PartialSpecification(
