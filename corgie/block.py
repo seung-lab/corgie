@@ -33,6 +33,21 @@ class Block:
             dst_stack=self.previous.dst_stack,
         )
 
+    def broadcastable(self):
+        """Get block representing the sections that are not block aligned by previous block
+
+        Returns:
+            new Block
+        """
+        if self.previous is None:
+            return None
+        return Block(
+            start=self.previous.stop,
+            stop=self.stop,
+            src_stack=self.src_stack,
+            dst_stack=self.dst_stack,
+        )
+
     def get_neighbors(self, dist):
         """Get list of previous blocks where stop is within dist of current block's start.
         Order from furthest to nearest block (convention of FieldSet).
