@@ -247,7 +247,7 @@ def align(
         start=bcube.z_range()[0],
         stop=bcube.z_range()[1],
         block_size=block_size,
-        block_overlap=0,
+        block_overlap=1,
         skip_list=skip_list,
         src_stack=src_stack,
         even_stack=even_stack,
@@ -453,7 +453,7 @@ def align(
     if restart_stage <= 3:
         corgie_logger.debug("Stitching blocks...")
         for block, stitch_block in zip(blocks[1:], stitch_blocks):
-            block_bcube = block.get_bcube(bcube)
+            block_bcube = block.broadcastable().get_bcube(bcube)
             block_list = block.get_neighbors(dist=decay_dist)
             corgie_logger.debug(f"src_block: {block}")
             corgie_logger.debug(f"influencing blocks: {block_list}")
