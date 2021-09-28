@@ -111,6 +111,12 @@ class AlignBlockJob(scheduling.Job):
             seethrough_mask_layer = None
             pixel_offset_layer = None
 
+        # Combine processor spec mips and seethrough spec mip
+        processor_mips = set(self.cf_method.processor_mip)
+        processor_and_seethrough_mips = processor_mips.copy()
+        if self.seethrough_method is not None:
+            processor_and_seethrough_mips.add(self.seethrough_method.mip)
+
         corgie_logger.debug(
             f"Serial alignment, {z_start}->{z_end}, use_starters={self.use_starters}"
         )
@@ -124,7 +130,7 @@ class AlignBlockJob(scheduling.Job):
                     src_stack=self.src_stack,
                     dst_stack=tgt_stack,
                     bcube=bcube,
-                    mips=self.cf_method.processor_mip,
+                    mips=processor_and_seethrough_mips,
                     blackout_masks=True,
                 )
 
