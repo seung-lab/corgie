@@ -151,66 +151,15 @@ class AlignBlockJob(scheduling.Job):
                 yield from compute_field_job.task_generator
                 yield scheduling.wait_until_done
 
-                if self.seethrough_method is not None:
-                    # This sequence can be bundled into a "seethrough render" job
-
-                    # First, render the images at the md mip level
-                    # This could mean a redundant render step, but that's fine
-                    render_job = self.render_method(
-                        src_stack=self.src_stack,
-                        dst_stack=tgt_stack,
-                        bcube=bcube,
-                        blackout_masks=False,
-                        preserve_zeros=True,
-                        additional_fields=[final_field],
-                        mips=self.seethrough_method.mip,
-                    )
-
-                    yield from render_job.task_generator
-                    yield scheduling.wait_until_done
-
-                    # Now, we'll apply misalignment detection to produce a mask
-                    # this mask will be used in the final render step
-                    seethrough_mask_job = self.seethrough_method(
-                        src_stack=tgt_stack,  # we're looking for misalignments in the final stack
-                        bcube=bcube,
-                        tgt_z_offset=offset,
-                        suffix=self.suffix,
-                        dst_layer=seethrough_mask_layer,
-                        pixel_offset_layer=pixel_offset_layer,
-                    )
-
-                    yield from seethrough_mask_job.task_generator
-                    yield scheduling.wait_until_done
-
-                    # We'll downsample the mask to be available at all mip levels
-                    downsample_job = DownsampleJob(
-                        src_layer=seethrough_mask_layer,
-                        chunk_xy=self.seethrough_method.chunk_xy,
-                        chunk_z=1,
-                        mip_start=self.seethrough_method.mip,
-                        mip_end=max(self.cf_method.processor_mip),
-                        bcube=bcube,
-                    )
-                    upsample_job = UpsampleJob(
-                        src_layer=seethrough_mask_layer,
-                        chunk_xy=self.seethrough_method.chunk_xy,
-                        chunk_z=1,
-                        mip_start=self.seethrough_method.mip,
-                        mip_end=min(self.cf_method.processor_mip),
-                        bcube=bcube,
-                    )
-
                 corgie_logger.debug(f"Render vote starter {z_start}<{z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
                     dst_stack=tgt_stack,
                     bcube=bcube,
                     blackout_masks=True,
-                    seethrough_mask_layer=seethrough_mask_layer,
+                    seethrough_mask_layer=None,  # No seethrough for starter sections
                     mips=self.cf_method.processor_mip,
                     additional_fields=[final_field],
-                    # seethrough_offset=seethrough_offset,
                 )
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done
