@@ -347,10 +347,10 @@ class PyramidDistanceFieldSet(FieldSet):
 
         Args:
             decay_dist (float): distance beyond which a field does not influence a neighbor
-            blur_rate (float): change in downsample factor based on distance. Can be considered,
-                the change in size of std of gaussian kernel per single section, although we
-                currently use a box filter. For example, if the std doubles every 10 sections,
-                blur_rate = 0.2.
+            blur_rate (float): rate of blurring increase with section distance. Can be roughly 
+                considered the change in size of std of gaussian kernel per single section (we
+                currently create the MIP hierarchy with a box filter). For example, if the std 
+                increases by 1 px every 10 sections, then blur_rate = 0.2.
         """
         super().__init__(layers)
         self.decay_dist = decay_dist
