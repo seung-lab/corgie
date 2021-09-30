@@ -490,11 +490,25 @@ def align(
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
 
-    # TODO: copy first block's field to composed_field layer
+        if len(blocks) > 1:
+            block_bcube = blocks[0].get_bcube(bcube)
+            copy_job = CopyJob(
+                    src_stack=even_stack[block_field_name],
+                    dst_stack=composed_field,
+                    mip=processor_mip[-1],
+                    copy_masks=None,
+                    blackout_masks=None,
+                    bcube=block_bcube,
+                    chunk_xy=chunk_xy,
+                    chunk_z=1,
+                )
+                scheduler.register_job(
+                    copy_job, job_name=f"Copy first block_field to composed_field location"
+                )
 
     if restart_stage <= 4:
-        for block in blocks[:1]:
-            block_bcube = block.get_bcube(bcube)
+        if len(blocks) == 1:
+            block_bcube = blocks[0].get_bcube(bcube)
             render_job = RenderJob(
                 src_stack=src_stack,
                 dst_stack=dst_stack,
@@ -510,9 +524,9 @@ def align(
             scheduler.register_job(
                 render_job, job_name=f"Render first block {block_bcube}"
             )
-        if len(blocks) > 1:
+        else:
             block_bcube = bcube.reset_coords(
-                zs=blocks[1].start, ze=blocks[-1].stop, in_place=False
+                zs=blocks[0].start, ze=blocks[-1].stop, in_place=False
             )
             render_job = RenderJob(
                 src_stack=src_stack,
@@ -527,7 +541,7 @@ def align(
                 additional_fields=[composed_field],
             )
             scheduler.register_job(
-                render_job, job_name=f"Render remaining blocks {block_bcube}"
+                render_job, job_name=f"Render all blocks {block_bcube}"
             )
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
