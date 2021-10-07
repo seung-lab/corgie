@@ -32,6 +32,7 @@ class VoteOverFieldsJob(scheduling.Job):
         mip,
         softmin_temp=None,
         blur_sigma=1.0,
+        use_distances=True,
     ):
         self.input_fields = input_fields
         self.output_field = output_field
@@ -40,6 +41,7 @@ class VoteOverFieldsJob(scheduling.Job):
         self.mip = mip
         self.softmin_temp = softmin_temp
         self.blur_sigma = blur_sigma
+        self.use_distances = use_distances
         super().__init__()
 
     def task_generator(self):
@@ -57,6 +59,7 @@ class VoteOverFieldsJob(scheduling.Job):
                 bcube=chunk,
                 softmin_temp=self.softmin_temp,
                 blur_sigma=self.blur_sigma,
+                use_distances=self.use_distances,
             )
             for chunk in chunks
         ]
@@ -69,7 +72,14 @@ class VoteOverFieldsJob(scheduling.Job):
 
 class VoteOverFieldsTask(scheduling.Task):
     def __init__(
-        self, input_fields, output_field, mip, bcube, softmin_temp, blur_sigma=1.0
+        self,
+        input_fields,
+        output_field,
+        mip,
+        bcube,
+        softmin_temp,
+        blur_sigma=1.0,
+        use_distances=True,
     ):
         """Find median vector for single location over set of fields
 
@@ -94,20 +104,28 @@ class VoteOverFieldsTask(scheduling.Task):
             )
         self.softmin_temp = softmin_temp
         self.blur_sigma = blur_sigma
+        self.use_distances = use_distances
 
     def execute(self):
         bcube = self.bcube
         mip = self.mip
         fields = [f.read(bcube, mip=mip) for f in self.input_fields.values()]
         fields = torch.cat(fields).field()
-        dist_shape = (1, *fields.shape[-2:])
-        distances = [torch.ones(dist_shape) * abs(k) for k in self.input_fields.keys()]
-        distances = torch.cat(distances)
-        voted_field = fields.vote_with_distances(
-            distances=distances,
-            softmin_temp=self.softmin_temp,
-            blur_sigma=self.blur_sigma,
-        )
+        if self.use_distances:
+            dist_shape = (1, *fields.shape[-2:])
+            distances = [
+                torch.ones(dist_shape) * abs(k) for k in self.input_fields.keys()
+            ]
+            distances = torch.cat(distances)
+            voted_field = fields.vote_with_distances(
+                distances=distances,
+                softmin_temp=self.softmin_temp,
+                blur_sigma=self.blur_sigma,
+            )
+        else:
+            voted_field = fields.vote(
+                softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma,
+            )
         self.output_field.write(data_tens=voted_field, bcube=bcube, mip=self.mip)
 
 

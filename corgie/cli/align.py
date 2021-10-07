@@ -55,12 +55,8 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--render_pad", nargs=1, type=int, default=512)
 @corgie_option("--render_chunk_xy", nargs=1, type=int, default=1024)
 @corgie_optgroup("Compute Field Method Specification")
-@corgie_option(
-    "--processor_spec", nargs=1, type=str, required=True, multiple=True
-)
-@corgie_option(
-    "--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True
-)
+@corgie_option("--processor_spec", nargs=1, type=str, required=True, multiple=True)
+@corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
@@ -125,6 +121,13 @@ from corgie.cli.broadcast import BroadcastJob
     help="The increase in the size of downsample factor based on distance used in broadcasting a stitching field.",
 )
 @corgie_option(
+    "--use_distances_with_voting",
+    nargs=1,
+    type=bool,
+    default=True,
+    help="Whether to use distances during voting as a means to bias toward nearer sections",
+)
+@corgie_option(
     "--restart_stage",
     nargs=1,
     type=int,
@@ -165,6 +168,7 @@ def align(
     seethrough_spec_mip,
     decay_dist,
     blur_rate,
+    use_distances_with_voting,
     restart_stage,
     restart_suffix,
 ):
@@ -190,9 +194,7 @@ def align(
 
     corgie_logger.debug("Setting up layers...")
 
-    src_stack = create_stack_from_spec(
-        src_layer_spec, name="src", readonly=True
-    )
+    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
 
     if force_chunk_xy is None:
@@ -331,10 +333,10 @@ def align(
                 copy_start=True,
                 use_starters=True,
                 backward=False,
+                use_distances_with_voting=use_distances_with_voting,
             )
             scheduler.register_job(
-                align_block_job_forv,
-                job_name=f"Forward Align {block} {block_bcube}",
+                align_block_job_forv, job_name=f"Forward Align {block} {block_bcube}",
             )
 
         scheduler.execute_until_completion()
@@ -358,6 +360,7 @@ def align(
                 copy_start=False,
                 use_starters=False,
                 backward=False,
+                use_distances_with_voting=use_distances_with_voting,
             )
             scheduler.register_job(
                 align_block_job_forv,
@@ -369,14 +372,10 @@ def align(
 
     # Add in the stitch_estimated fields that were just created above
     even_stack.create_sublayer(
-        stitch_estimated_name,
-        layer_type="field",
-        overwrite=False,
+        stitch_estimated_name, layer_type="field", overwrite=False,
     )
     odd_stack.create_sublayer(
-        stitch_estimated_name,
-        layer_type="field",
-        overwrite=False,
+        stitch_estimated_name, layer_type="field", overwrite=False,
     )
     if restart_stage <= 2:
         if stitch_size > 1:
@@ -385,13 +384,9 @@ def align(
                 stitch_corrected_name, layer_type="field", overwrite=True
             )
             for stitch_block in stitch_blocks:
-                stitch_estimated_field = stitch_block.dst_stack[
-                    stitch_estimated_name
-                ]
+                stitch_estimated_field = stitch_block.dst_stack[stitch_estimated_name]
                 block_bcube = bcube.reset_coords(
-                    zs=stitch_block.start,
-                    ze=stitch_block.start + 1,
-                    in_place=False,
+                    zs=stitch_block.start, ze=stitch_block.start + 1, in_place=False,
                 )
                 vote_stitch_job = VoteOverZJob(
                     input_field=stitch_estimated_field,
@@ -434,14 +429,10 @@ def align(
 
     # Add in the block-align fields
     even_stack.create_sublayer(
-        block_field_name,
-        layer_type="field",
-        overwrite=False,
+        block_field_name, layer_type="field", overwrite=False,
     )
     odd_stack.create_sublayer(
-        block_field_name,
-        layer_type="field",
-        overwrite=False,
+        block_field_name, layer_type="field", overwrite=False,
     )
     composed_field = dst_stack.create_sublayer(
         composed_name, layer_type="field", overwrite=True
