@@ -100,11 +100,13 @@ class VoteOverFieldsTask(scheduling.Task):
         mip = self.mip
         fields = [f.read(bcube, mip=mip) for f in self.input_fields.values()]
         fields = torch.cat(fields).field()
-        var_shape = (1, 1, *fields.shape[-2:])
-        variances = [-torch.ones(var_shape) + abs(k) for k in self.input_fields.keys()]
-        variances = torch.cat(variances)
-        voted_field = fields.vote_with_variances(
-            var=variances, softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
+        dist_shape = (1, *fields.shape[-2:])
+        distances = [torch.ones(dist_shape) * abs(k) for k in self.input_fields.keys()]
+        distances = torch.cat(distances)
+        voted_field = fields.vote_with_distances(
+            distances=distances,
+            softmin_temp=self.softmin_temp,
+            blur_sigma=self.blur_sigma,
         )
         self.output_field.write(data_tens=voted_field, bcube=bcube, mip=self.mip)
 
