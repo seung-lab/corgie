@@ -13,6 +13,62 @@ from corgie.argparsers import (
     create_stack_from_spec,
 )
 
+class CopyLayerJob(scheduling.Job):
+    def __init__(
+        self,
+        src_layer,
+        dst_layer,
+        mip,
+        bcube,
+        chunk_xy,
+        chunk_z,
+    ):
+        self.src_layer = src_layer
+        self.dst_layer = dst_layer
+        self.mip = mip
+        self.bcube = bcube
+        self.chunk_xy = chunk_xy
+        self.chunk_z = chunk_z
+
+        super().__init__()
+
+    def task_generator(self):
+        chunks = self.dst_layer.break_bcube_into_chunks(
+            bcube=self.bcube,
+            chunk_xy=self.chunk_xy,
+            chunk_z=self.chunk_z,
+            mip=self.mip,
+            return_generator=True,
+        )
+
+        tasks = (
+            CopyLayerTask(
+                self.src_layer,
+                self.dst_layer,
+                mip=self.mip,
+                bcube=input_chunk,
+            )
+            for input_chunk in chunks
+        )
+        corgie_logger.info(
+            f"Yielding copy layer tasks for bcube: {self.bcube}, MIP: {self.mip}"
+        )
+
+        yield tasks
+
+
+class CopyLayerTask(scheduling.Task):
+    def __init__(self, src_layer, dst_layer, mip, bcube):
+        super().__init__(self)
+        self.src_layer = src_layer
+        self.dst_layer = dst_layer
+        self.mip = mip
+        self.bcube = bcube
+
+    def execute(self):
+        src = self.src_layer.read(bcube=self.bcube, mip=self.mip)
+        self.dst_layer.write(src, bcube=self.bcube, mip=self.mip)
+
 
 class CopyJob(scheduling.Job):
     def __init__(
