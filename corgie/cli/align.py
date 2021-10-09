@@ -501,9 +501,9 @@ def align(
                     chunk_xy=chunk_xy,
                     chunk_z=1,
                 )
-                scheduler.register_job(
-                    copy_job, job_name=f"Copy first block_field to composed_field location"
-                )
+            scheduler.register_job(
+                copy_job, job_name=f"Copy first block_field to composed_field location"
+            )
 
     if restart_stage <= 4:
         if len(blocks) == 1:
