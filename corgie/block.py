@@ -123,7 +123,9 @@ def partition(xrange, sz, overlap=0, skip=[]):
             xs_stop += 1
         while xs_start in skip and xs_start + overlap < xs_stop:
             xs_start += 1
-        subsets.append(range(xs_start, min(xrange.stop, xs_stop + overlap)))
+        xs_stop = min(xrange.stop, xs_stop + overlap)
+        if xs_start < xs_stop:
+            subsets.append(range(xs_start, xs_stop))
         xs_start = xs_next
         xs_next = min(xs_next + sz, xrange.stop)
     return subsets

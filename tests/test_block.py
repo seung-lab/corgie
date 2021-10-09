@@ -13,9 +13,10 @@ from corgie.block import Block, partition, get_blocks
         (range(4), 2, 0, [2], [range(0, 3), range(3, 4)]),
         (range(4), 2, 0, [2, 3], [range(0, 4)]),
         (range(4), 2, 0, [2, 3, 4], [range(0, 4)]),
-        (range(4), 2, 0, [0, 2, 3, 4], [range(0, 4)]),
+        (range(4), 2, 0, [0, 2, 3, 4], [range(1, 4)]),
         (range(0), 2, 0, [2], []),
         (range(1), 2, 0, [2], [range(1)]),
+        (range(12), 4, 1, [4, 5], [range(0, 7), range(6, 9), range(8, 12)])
     ],
 )
 def test_partition(xrange, sz, overlap, skip, result):
