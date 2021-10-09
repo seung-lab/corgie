@@ -107,22 +107,23 @@ def partition(xrange, sz, overlap=0, skip=[]):
 
     Args:
         xrange (range)
-        sz (int): minimum size of subset
+        sz (int): target size of subset
         overlap (int): amount of overlap between subsets
-        skip ([int]): indices to skip in start/end of subset (unless start/end of xrange)
+        skip ([int]): indices to skip in start/end of subset
 
     Returns:
         list of subset ranges
     """
     subsets = []
-    x = xrange.start
-    while x < xrange.stop:
-        xs_start = x
-        xs_stop = x + sz
-        while xs_stop + overlap in skip and xs_stop + overlap < xrange.stop:
+    xs_start = xrange.start
+    xs_next = min(xs_start + sz, xrange.stop)
+    while xs_start < xs_next:
+        xs_stop = xs_next
+        while xs_stop in skip and xs_stop < xrange.stop:
             xs_stop += 1
-        x = xs_stop
-        xs_stop += overlap
-        xs_stop = min(xs_stop, xrange.stop)
-        subsets.append(range(xs_start, xs_stop))
+        while xs_start in skip and xs_start + overlap < xs_stop:
+            xs_start += 1
+        subsets.append(range(xs_start, min(xrange.stop, xs_stop + overlap)))
+        xs_start = xs_next
+        xs_next = min(xs_next + sz, xrange.stop)
     return subsets
