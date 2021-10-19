@@ -23,7 +23,7 @@ from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyLayerJob
 from corgie.cli.downsample import DownsampleJob
 from corgie.cli.compute_field import ComputeFieldJob
-from corgie.cli.compare_sections import CompareSectionsJob
+from corgie.cli.compare_sections import SeethroughCompareJob
 from corgie.cli.vote import VoteOverZJob
 from corgie.cli.broadcast import BroadcastJob
 
@@ -294,7 +294,7 @@ def align(
     if seethrough_spec != tuple():
         assert seethrough_spec_mip is not None
         seethrough_method = helpers.PartialSpecification(
-            f=CompareSectionsJob,
+            f=SeethroughCompareJob,
             mip=seethrough_spec_mip,
             processor_spec=seethrough_spec,
             chunk_xy=chunk_xy,
