@@ -47,6 +47,7 @@ COMMAND_LIST.append(normalize_by_spec)
 COMMAND_LIST.append(downsample_by_spec)
 COMMAND_LIST.append(seethrough_block)
 COMMAND_LIST.append(fill_nearest)
+COMMAND_LIST.append(compare_sections)
 
 
 def get_command_list():
