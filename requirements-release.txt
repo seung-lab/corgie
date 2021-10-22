@@ -123,9 +123,9 @@ sphinxcontrib-serializinghtml==1.1.4
 tenacity==7.0.0
 tifffile==2021.2.26
 toml==0.10.2
-torch==1.6.0+cu101
+torch==1.6.0
 torchfields==0.0.5
-torchvision==0.7.0+cu101
+torchvision==0.7.0
 tqdm==4.58.0
 twine==3.3.0
 typing-extensions==3.7.4.3
