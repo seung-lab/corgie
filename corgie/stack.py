@@ -350,7 +350,7 @@ class PyramidDistanceFieldSet(FieldSet):
             blur_rate (float): rate of blurring increase with section distance. Can be roughly 
                 considered the change in size of std of gaussian kernel per single section (we
                 currently create the MIP hierarchy with a box filter). For example, if the std 
-                increases by 1 px every 10 sections, then blur_rate = 0.2.
+                increases by 1 px every 10 sections, then blur_rate = 0.1.
         """
         super().__init__(layers)
         self.decay_dist = decay_dist
