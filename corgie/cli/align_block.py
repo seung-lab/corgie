@@ -19,7 +19,7 @@ from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
 from corgie.cli.vote import VoteOverFieldsJob
 from corgie.cli.compute_field import ComputeFieldJob
-from corgie.cli.compare_sections import SeethroughCompareJob
+from corgie.cli.seethrough import SeethroughCompareJob
 
 from corgie.cli.downsample import DownsampleJob
 from corgie.cli.upsample import UpsampleJob

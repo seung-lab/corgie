@@ -23,7 +23,7 @@ from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyLayerJob
 from corgie.cli.downsample import DownsampleJob
 from corgie.cli.compute_field import ComputeFieldJob
-from corgie.cli.compare_sections import SeethroughCompareJob
+from corgie.cli.seethrough import SeethroughCompareJob
 from corgie.cli.vote import VoteOverZJob
 from corgie.cli.broadcast import BroadcastJob
 

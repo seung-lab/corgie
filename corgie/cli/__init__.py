@@ -21,7 +21,7 @@ from corgie.cli.apply_processor_by_spec import apply_processor_by_spec
 from corgie.cli.normalize_by_spec import normalize_by_spec
 from corgie.cli.downsample_by_spec import downsample_by_spec
 from corgie.cli.compare_sections import compare_sections
-from corgie.cli.seethrough_block import seethrough_block
+from corgie.cli.seethrough import seethrough_block
 from corgie.cli.fill_nearest import fill_nearest
 
 COMMAND_LIST = []
