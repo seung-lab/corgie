@@ -251,6 +251,10 @@ class CVLayerBase(BaseLayerBackend):
         )
         return chunks
 
+    def flush(self, mip):
+        corgie_logger.debug(f"FLUSH {str(self)} at {mip}")
+        self.cv[mip].cache.flush()
+
 
 @cv_backend.register_layer_type_backend("img")
 class CVImgLayer(CVLayerBase, layers.ImgLayer):

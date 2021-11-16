@@ -105,3 +105,5 @@ class BaseLayerBackend:
     def write_backend(self, *kargs, **kwargs):
         raise Exception("layer type backend must implement" "'write_backend' function")
 
+    def flush(self):
+        raise NotImplementedError
