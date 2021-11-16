@@ -5,7 +5,7 @@ from corgie import exceptions
 from corgie.log import logger as corgie_logger
 from corgie.layers import get_layer_types, str_to_layer_type
 
-#TODO: DEFNITELY need a full blown cache.
+# TODO: DEFNITELY need a full blown cache.
 
 STR_TO_BACKEND_DICT = {}
 
@@ -24,6 +24,7 @@ def register_backend(name):
         global STR_TO_BACKEND_DICT
         STR_TO_BACKEND_DICT[name] = cls()
         return cls
+
     return register_backend_fn
 
 
@@ -35,25 +36,39 @@ class DataBackendBase:
         self.device = device
         super().__init__(*kargs, **kwargs)
 
-    def create_layer(self, path, layer_type=None, reference=None, layer_args={}, **kwargs):
+    def create_layer(
+        self, path, layer_type=None, reference=None, layer_args={}, **kwargs
+    ):
         if self.device is None:
             self.device = self.default_device
         if layer_type not in self.layer_constr_dict:
-            raise exceptions.CorgieException("Layer type {} is not \
-                    defined".format(layer_type))
-        if self.layer_constr_dict[layer_type] is None:
-            raise exceptions.CorgieException("Layer type {} is not \
-                    implemented for {} backend".format(layer_type, type(self)))
-
-        corgie_logger.debug("Creating layer '{}' on device '{}' with reference '{}'...".format(
-                path, self.device, reference
-                ))
-        layer = self.layer_constr_dict[layer_type](path=path, device=self.device,
-                reference=reference,
-                backend=self,
-                **layer_args,
-                **kwargs
+            raise exceptions.CorgieException(
+                "Layer type {} is not \
+                    defined".format(
+                    layer_type
                 )
+            )
+        if self.layer_constr_dict[layer_type] is None:
+            raise exceptions.CorgieException(
+                "Layer type {} is not \
+                    implemented for {} backend".format(
+                    layer_type, type(self)
+                )
+            )
+
+        corgie_logger.debug(
+            "Creating layer '{}' on device '{}' with reference '{}'...".format(
+                path, self.device, reference
+            )
+        )
+        layer = self.layer_constr_dict[layer_type](
+            path=path,
+            device=self.device,
+            reference=reference,
+            backend=self,
+            **layer_args,
+            **kwargs
+        )
         corgie_logger.debug("Done")
         return layer
 
@@ -77,18 +92,16 @@ class BaseLayerBackend:
         return self.dtype
 
     def get_sublayer(obj, *kargs, **kwargs):
-        raise Exception("layer type backend must implement "
-                "'get_sublayer' function")
+        raise Exception("layer type backend must implement " "'get_sublayer' function")
 
-        #$def get_data_type(self):
+        # $def get_data_type(self):
+
     #    raise Exception("layer type backend must implement "
     #            "'get_data_type' function")
 
     def read_backend(self, *kargs, **kwargs):
-        raise Exception("layer type backend must implement "
-                "'read_backend' function")
+        raise Exception("layer type backend must implement " "'read_backend' function")
 
     def write_backend(self, *kargs, **kwargs):
-        raise Exception("layer type backend must implement"
-                "'write_backend' function")
+        raise Exception("layer type backend must implement" "'write_backend' function")
 
