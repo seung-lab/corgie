@@ -130,7 +130,6 @@ class RenderTask(scheduling.Task):
             add_prefix=False,
             translation_adjuster=helpers.percentile_trans_adjuster,
         )
-
         agg_field = src_data_dict[f"agg_field"]
         if agg_field is not None:
             agg_field[:, 0] -= src_translation.x
@@ -170,7 +169,12 @@ class RenderTask(scheduling.Task):
 
         for l in write_layers:
             src = src_data_dict[f"{l.name}"]
-
+            '''
+            if (src != 0).sum():
+                import pdb; pdb.set_trace()
+            else:
+                return
+            '''
             if agg_field is not None:
                 warped_src = residuals.res_warp_img(src.float(), agg_field)
             else:

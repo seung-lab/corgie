@@ -184,8 +184,12 @@ class CopyTask(scheduling.Task):
 @corgie_option("--mip", nargs=1, type=int, required=True)
 @corgie_option("--blackout_masks/--no_blackout_masks", default=False)
 @corgie_option("--copy_masks/--no_copy_masks", default=True)
-@corgie_option("--force_chunk_xy", nargs=1, type=int)
-@corgie_option("--force_chunk_z", nargs=1, type=int)
+@corgie_option("--force_chunk_xy", nargs=1, type=int,
+   help="Will force the chunking of the underlying cloudvolume"
+)
+@corgie_option("--force_chunk_z", nargs=1, type=int,
+   help="Will force the chunking of the underlying cloudvolume"
+)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
@@ -248,7 +252,12 @@ def copy(
         copy_masks=copy_masks,
         blackout_masks=blackout_masks,
     )
-
     # create scheduler and execute the job
     scheduler.register_job(copy_job, job_name="Copy {}".format(bcube))
     scheduler.execute_until_completion()
+
+    result_report = (
+        f"Copied layers {[str(l) for l in src_stack.get_layers_of_type('img')]}. "
+        f"to {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
+    )
+    corgie_logger.info(result_report)

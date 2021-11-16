@@ -305,6 +305,8 @@ def align(
     else:
         seethrough_method = None
 
+    #restart_stage = 4
+    #import pdb; pdb.set_trace()
     if restart_stage == 0:
         corgie_logger.debug("Aligning blocks...")
         for block in blocks:
