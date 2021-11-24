@@ -24,6 +24,7 @@ class RenderJob(scheduling.Job):
         pad,
         render_masks,
         blackout_masks,
+        coarsen_masks,
         bcube,
         chunk_xy,
         chunk_z,
@@ -46,6 +47,7 @@ class RenderJob(scheduling.Job):
         self.chunk_z = chunk_z
         self.render_masks = render_masks
         self.blackout_masks = blackout_masks
+        self.coarsen_masks = coarsen_masks
         self.additional_fields = additional_fields
 
         self.preserve_zeros = preserve_zeros
@@ -69,6 +71,7 @@ class RenderJob(scheduling.Job):
                     self.src_stack,
                     self.dst_stack,
                     blackout_masks=self.blackout_masks,
+                    coarsen_masks=self.coarsen_masks,
                     render_masks=self.render_masks,
                     mip=mip,
                     pad=self.pad,
@@ -95,6 +98,7 @@ class RenderTask(scheduling.Task):
         additional_fields,
         render_masks,
         blackout_masks,
+        coarsen_masks,
         seethrough_offset,
         seethrough_mask_layer,
         mip,
@@ -107,6 +111,7 @@ class RenderTask(scheduling.Task):
         self.dst_stack = dst_stack
         self.render_masks = render_masks
         self.blackout_masks = blackout_masks
+        self.coarsen_masks = coarsen_masks
         self.mip = mip
         self.bcube = bcube
         self.pad = pad
@@ -148,7 +153,7 @@ class RenderTask(scheduling.Task):
                         agg_mask = ((agg_mask + d) > 0).byte()
 
             # if the mask is not empty, warp it and coarsen it for seethrough
-            if agg_mask is not None:
+            if agg_mask is not None and self.coarsen_masks:
                 coarsen_factor = int(2 ** (6 - self.mip))
                 agg_mask = helpers.coarsen_mask(agg_mask, coarsen_factor)
                 if agg_field is not None:
@@ -244,6 +249,7 @@ class RenderTask(scheduling.Task):
 @corgie_option("--mip", "mips", nargs=1, type=int, required=True, multiple=True)
 @corgie_option("--render_masks/--no_render_masks", default=True)
 @corgie_option("--blackout_masks/--no_blackout_masks", default=False)
+@corgie_option("--coarsen_masks/--no_coarsen_masks", default=True)
 @corgie_option("--seethrough/--no_seethrough", default=False)
 @corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--force_chunk_z", nargs=1, type=int)
@@ -260,6 +266,7 @@ def render(
     pad,
     render_masks,
     blackout_masks,
+    coarsen_masks,
     seethrough,
     chunk_xy,
     chunk_z,
@@ -310,6 +317,7 @@ def render(
         chunk_z=chunk_z,
         render_masks=render_masks,
         blackout_masks=blackout_masks,
+        coarsen_masks=coarsen_masks,
     )
 
     # create scheduler and execute the job
