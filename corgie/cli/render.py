@@ -200,7 +200,7 @@ class RenderTask(scheduling.Task):
                     warped_zero_mask = residuals.res_warp_img(
                         src_zero_mask.float(), agg_field
                     )
-                    warped_zero_mask = (warped_zero_mask > 0.4).byte()
+                    warped_zero_mask = (warped_zero_mask > 0.01).byte()
                     warped_zero_mask = helpers.crop(warped_zero_mask, self.pad)
                     cropped_out[warped_zero_mask] = 0
 
