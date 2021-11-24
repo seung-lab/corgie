@@ -254,6 +254,7 @@ class RenderTask(scheduling.Task):
 @corgie_option("--render_masks/--no_render_masks", default=True)
 @corgie_option("--blackout_masks/--no_blackout_masks", default=False)
 @corgie_option("--coarsen_masks/--no_coarsen_masks", default=True)
+@corgie_option("--preserve_zeros/--no_preserve_zeros", default=False)
 @corgie_option("--seethrough/--no_seethrough", default=False)
 @corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--force_chunk_z", nargs=1, type=int)
@@ -271,6 +272,7 @@ def render(
     render_masks,
     blackout_masks,
     coarsen_masks,
+    preserve_zeros,
     seethrough,
     chunk_xy,
     chunk_z,
@@ -322,6 +324,7 @@ def render(
         render_masks=render_masks,
         blackout_masks=blackout_masks,
         coarsen_masks=coarsen_masks,
+        preserve_zeros=preserve_zeros
     )
 
     # create scheduler and execute the job
