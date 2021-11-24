@@ -135,6 +135,7 @@ class RenderTask(scheduling.Task):
             add_prefix=False,
             translation_adjuster=helpers.percentile_trans_adjuster,
         )
+
         agg_field = src_data_dict[f"agg_field"]
         if agg_field is not None:
             agg_field[:, 0] -= src_translation.x
@@ -190,6 +191,7 @@ class RenderTask(scheduling.Task):
             cropped_out = helpers.crop(warped_src, self.pad)
 
             if l.get_layer_type() == "img":
+
                 if self.blackout_masks and warped_mask is not None:
                     cropped_out[warped_mask] = self.blackout_value
 
