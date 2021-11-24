@@ -153,9 +153,11 @@ class RenderTask(scheduling.Task):
                         agg_mask = ((agg_mask + d) > 0).byte()
 
             # if the mask is not empty, warp it and coarsen it for seethrough
-            if agg_mask is not None and self.coarsen_masks:
-                coarsen_factor = int(2 ** (6 - self.mip))
-                agg_mask = helpers.coarsen_mask(agg_mask, coarsen_factor)
+            if agg_mask is not None:
+                if self.coarsen_masks:
+                    coarsen_factor = int(2 ** (6 - self.mip))
+                    agg_mask = helpers.coarsen_mask(agg_mask, coarsen_factor)
+
                 if agg_field is not None:
                     warped_mask = residuals.res_warp_img(agg_mask.float(), agg_field)
                 else:
