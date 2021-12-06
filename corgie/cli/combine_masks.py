@@ -3,6 +3,7 @@ import click
 import json
 from corgie.log import logger as corgie_logger
 from corgie import scheduling, helpers, stack
+from corgie.helpers import BoolFn
 from corgie.boundingcube import get_bcube_from_coords
 from corgie.argparsers import (
     LAYER_HELP_STR,
@@ -24,8 +25,6 @@ class CombineMasksJob(scheduling.Job):
         pad,
         chunk_xy,
         chunk_z=1,
-        inner_threshold=0.01,
-        outer_threshold=0.99,
     ):
         """
         Combine masks according to boolean expression
@@ -37,8 +36,6 @@ class CombineMasksJob(scheduling.Job):
             mip (int)
             bcube (BoundingCube)
             pad (int)
-            inner_threshold (float)
-            outer_threshold (float)
             chunk_xy (int)
             chunk_z (int)
         """
@@ -49,8 +46,6 @@ class CombineMasksJob(scheduling.Job):
         self.mip = mip
         self.pad = pad
         self.bcube = bcube
-        self.inner_threshold = inner_threshold
-        self.outer_threshold = outer_threshold
         self.chunk_xy = chunk_xy
         self.chunk_z = chunk_z
 
@@ -68,8 +63,6 @@ class CombineMasksJob(scheduling.Job):
                 mip=self.mip,
                 bcube=chunk,
                 pad=self.pad,
-                inner_threshold=self.inner_threshold,
-                outer_threshold=self.outer_threshold,
             )
             tasks.append(task)
 
@@ -90,32 +83,47 @@ class CombineMasksTask(scheduling.Task):
         mip,
         bcube,
         pad,
-        inner_threshold=0.01,
-        outer_threshold=0.99,
     ):
         """Evaluate a Boolean function of masks that may be from different layers and
-        with different z_offsets. The Boolean function is expressed in normative form
-        (either conjunctive or disjunctive), e.g.
-        ..math::
-            (A | B) & (C | D)
+        with different z_offsets. The Boolean function is expressed as a set of nested
+        linear thresholded neurons, as described in helpers.BoolFn.
 
         Args:
             layers ({key: Layer}): dict with values of mask layers indexed with key that's
                 referenced in boolean expression
-            exp (list of lists): nested lists of depth two. Inner lists must be lists of
-                tuples with sign, layer key, and offset. Inner lists will be evaluated as
-                disjunctions, while the outer list will evaluate as a conjunction.
+            exp (BoolFn dict): BoolVar must have keys "weight", "key", and "offset", and must not
+                have "inputs" as a key
+                be lists of tuples with weight, layer key, and offset.
                 For example:
-                ``[[(+1, "a", 0), (-1, "b", -1), (+1, "c", 2)], [(+1, "a", 1), (-1, "c", 0)]]```
+                ```
+                {
+                "inputs": [
+                    {
+                    "inputs": [
+                        { "weight": 1, "key": "a", "offset": 0 },
+                        { "weight": -1, "key": "b", "offset": -1 },
+                        { "weight": 1, "key": "c", "offset": 2 }
+                    ],
+                    "threshold": 2
+                    },
+                    {
+                    "inputs": [
+                        { "weight": 1, "key": "a", "offset": 1 },
+                        { "weight": 1, "key": "c", "offset": 0 }
+                    ],
+                    "threshold": 1
+                    }
+                ],
+                "threshold": 0
+                }
+                ```
                 evaluates as
-                `(a[0] | not b[-1] | c[2]) & (a[1] | not c[0])`.
+                `((a[0] - b[-1] + c[2] > 2) + (a[1] - c[0]) > 1) > 0`.
             output_field (Layer)
             mip (int)
             bcube (BoundingCube): xy location of where to sample all fields;
                 z locations of where to write output
             pad (int)
-            inner_threshold (float): low for OR, high for AND
-            outer_threshold (float): low for OR, high for AND
         """
         super().__init__()
         self.src_stack = src_stack
@@ -124,26 +132,25 @@ class CombineMasksTask(scheduling.Task):
         self.mip = mip
         self.pad = pad
         self.bcube = bcube
-        self.inner_threshold = inner_threshold
-        self.outer_threshold = outer_threshold
 
     def execute(self):
         corgie_logger.debug(f"CombineMaskTask, {self.bcube}")
         pbcube = self.bcube.uncrop(self.pad, self.mip)
+        bf = BoolFn(self.exp)
         for z in range(*self.bcube.z_range()):
-            w, h = pbcube.x_size(self.mip), pbcube.y_size(self.mip)
-            outer = torch.zeros((1, 1, w, h), dtype=torch.uint8)
-            for X in self.exp:
-                inner = torch.zeros((1, 1, w, h), dtype=torch.uint8)
-                for s, k, o in X:
-                    bcube = pbcube.reset_coords(zs=z + o, ze=z + o + 1, in_place=False)
-                    layer = self.src_stack.layers[k]
-                    inner += s * layer.read(bcube=bcube, mip=self.mip)
-                outer += inner > self.inner_threshold
-            m = (outer > self.outer_threshold).to(torch.uint8)
+
+            def eval(exp):
+                w, k, o = exp["weight"], exp["key"], exp["offset"]
+                bcube = pbcube.reset_coords(zs=z + o, ze=z + o + 1, in_place=False)
+                layer = self.src_stack.layers[k]
+                return w * layer.read(bcube=bcube, mip=self.mip)
+
+            m = bf(eval).to(torch.uint8)
             m = helpers.crop(m, self.pad)
             bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             self.dst_layer.write(m, bcube=bcube, mip=self.mip)
+
+        # This task can be used with caching
         for layer in self.src_stack.layers.values():
             layer.flush(self.mip)
 
@@ -175,26 +182,14 @@ class CombineMasksTask(scheduling.Task):
     type=str,
     required=True,
     help="Boolean expression to be evaluated. "
-    + "Must be a JSON-parseable string describing a list of lists."
-    + "Inner list represents literals as three-element tuples: "
-    + "1. int for sign of the literal, e.g. +/-1 "
-    + "2. str of layer name "
-    + "3. int of z offset "
-    + "Expressions are evluated as linear threshold neurons.",
-)
-@corgie_option(
-    "--inner_threshold",
-    nargs=1,
-    type=float,
-    default=0.01,
-    help="Threshold used for linear threshold neuron combining literals in inner lists of EXP. Set low to be disjunctive, high to be conjunctive.",
-)
-@corgie_option(
-    "--outer_threshold",
-    nargs=1,
-    type=float,
-    default=0.99,
-    help="Threshold used for linear threshold neuron combining prositions within outer list of EXP. Set low to be disjunctive, high to be conjunctive.",
+    + "Must be a JSON-parseable string describing a nested set of linear threshold (LT) neurons. "
+    + "LT neurons are defined as dict with keys 'inputs' and 'threshold'. "
+    + "The 'threshold' is any float. The 'inputs' may be any LT neuron, as well as a BoolVar. "
+    + "This specific BoolVar must be a dict that does not contain 'inputs' as a key, and "
+    + "must contain the following keys: "
+    + "1. 'weight' as float for coefficient of the mask; e.g. as boolean literal, -1 can be considered NOT. "
+    + "2. 'key' as str for layer name in src_stack "
+    + "2. 'offset' as int for positive offset from the current z index ",
 )
 @corgie_option("--mip", nargs=1, type=int, required=True)
 @corgie_option("--pad", nargs=1, type=int, default=0)
@@ -212,8 +207,6 @@ def combine_masks(
     src_layer_spec,
     dst_layer_spec,
     exp,
-    inner_threshold,
-    outer_threshold,
     chunk_xy,
     chunk_z,
     force_chunk_xy,
@@ -255,8 +248,6 @@ def combine_masks(
         pad=pad,
         chunk_xy=chunk_xy,
         chunk_z=chunk_z,
-        inner_threshold=inner_threshold,
-        outer_threshold=outer_threshold,
     )
     # create scheduler and execute the job
     scheduler.register_job(combine_masks_job, job_name="Combine Masks {}".format(bcube))
