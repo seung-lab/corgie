@@ -189,3 +189,60 @@ def coarsen_mask(mask, n=1, flip=False):
 
 def zeros(*args, **kwargs):
     return torch.zeros(*args, **kwargs)
+
+
+class BoolFn:
+    def __init__(self, exp):
+        """Create a boolean expression from dict describing a linear threshold (LT) neuron
+
+        A LT neuron is described as dict with keys "inputs" and "threshold". The LT neuron
+        will evaluate to true if the sum of "inputs" is greater than or equal to the
+        "threshold". The "inputs" of an LT neuron maybe include other LT neurons. Final
+        variables must be expressed as a dict that does not contain the key "inputs". These
+        variables are stored as BoolVars. To evaluate the Boolean expression, pass a method
+        that can evaluate the dict for each BoolVar.
+
+        Args:
+            exp (dict of dicts): dict describing nested LT neurons. For example:
+            ```
+            {
+            "inputs": [
+                {
+                "inputs": [
+                    { "weight": 1, "key": "a", "offset": 0 },
+                    { "weight": -1, "key": "b", "offset": -1 },
+                    { "weight": 1, "key": "c", "offset": 2 }
+                ],
+                "threshold": 2
+                },
+                {
+                "inputs": [
+                    { "weight": 1, "key": "a", "offset": 1 },
+                    { "weight": 1, "key": "c", "offset": 0 }
+                ],
+                "threshold": 1
+                }
+            ],
+            "threshold": 0
+            }
+            ```
+
+            evaluates as
+            `((a[0] - b[-1] + c[2] > 2) + (a[1] - c[0]) > 1) > 0`.
+        """
+        self.inputs = [
+            BoolFn(e) if "inputs" in e else BoolVar(e) for e in exp["inputs"]
+        ]
+        self.threshold = exp["threshold"]
+
+    def __call__(self, fn):
+        return sum([i(fn) for i in self.inputs]) >= self.threshold
+
+
+class BoolVar:
+    def __init__(self, exp):
+        """See description of BoolFn"""
+        self.exp = exp
+
+    def __call__(self, fn):
+        return fn(self.exp)
