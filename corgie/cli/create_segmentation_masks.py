@@ -18,9 +18,7 @@ from corgie.cli.combine_masks import CombineMasksJob
 
 
 class DetectSlipMisalignmentsJob(scheduling.Job):
-    def __init__(
-        self, src_stack, dst_layer, mip, bcube, pad, chunk_xy, chunk_z
-    ):
+    def __init__(self, src_stack, dst_layer, mip, bcube, pad, chunk_xy, chunk_z):
         super().__init__()
         self.src_stack = src_stack
         self.dst_layer = dst_layer
@@ -362,7 +360,10 @@ def create_segmentation_masks(
         # See arg help above for similarity mask and misalignment mask definitions.
         for layer_name in z_offsets:
             img_layer = dst_stack[layer_name]
-            binarizer = {"binarization": ["gt", similarity_threshold], "cv_params": {"cache": True}}
+            binarizer = {
+                "binarization": ["gt", similarity_threshold],
+                "cv_params": {"cache": True},
+            }
             layer_dict = {
                 "path": img_layer.path,
                 "name": img_layer.name,
@@ -377,11 +378,12 @@ def create_segmentation_masks(
         slip_layer = dst_stack.create_sublayer(
             name="slip", layer_type="mask", overwrite=True
         )
+        slip_bcube = bcube.reset_coords(zs=bcube.z[0] + 1, ze=z[1] - 1, in_place=False)
         slip_misalignments_job = DetectSlipMisalignmentsJob(
             src_stack=src_stack,
             dst_layer=slip_layer,
             mip=dst_mip,
-            bcube=bcube,
+            bcube=slip_bcube,
             pad=pad,
             chunk_xy=chunk_xy,
             chunk_z=chunk_z,
@@ -394,11 +396,12 @@ def create_segmentation_masks(
         step_layer = dst_stack.create_sublayer(
             name="step", layer_type="mask", overwrite=True
         )
+        step_bcube = bcube.reset_coords(zs=bcube.z[0] + 2, ze=z[1] - 2, in_place=False)
         step_misalignments_job = DetectStepMisalignmentsJob(
             src_stack=src_stack,
             dst_layer=step_layer,
             mip=dst_mip,
-            bcube=bcube,
+            bcube=step_bcube,
             pad=pad,
             chunk_xy=chunk_xy,
             chunk_z=chunk_z,
