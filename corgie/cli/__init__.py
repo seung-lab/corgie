@@ -24,6 +24,7 @@ from corgie.cli.compare_sections import compare_sections
 from corgie.cli.seethrough import seethrough_block
 from corgie.cli.fill_nearest import fill_nearest
 from corgie.cli.combine_masks import combine_masks
+from corgie.cli.create_segmentation_masks import create_segmentation_masks
 
 COMMAND_LIST = []
 COMMAND_LIST.append(downsample)
@@ -50,6 +51,7 @@ COMMAND_LIST.append(seethrough_block)
 COMMAND_LIST.append(fill_nearest)
 COMMAND_LIST.append(compare_sections)
 COMMAND_LIST.append(combine_masks)
+COMMAND_LIST.append(create_segmentation_masks)
 
 
 def get_command_list():
