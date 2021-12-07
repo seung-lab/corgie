@@ -236,7 +236,7 @@ class BoolFn:
         self.threshold = exp["threshold"]
 
     def __call__(self, fn):
-        return sum([i(fn) for i in self.inputs]) >= self.threshold
+        return sum([i(fn) for i in self.inputs]) > self.threshold
 
 
 class BoolVar:
