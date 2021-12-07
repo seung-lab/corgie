@@ -77,17 +77,17 @@ def test_combine_masks():
                     {"weight": 1, "key": "M", "offset": -1},
                     {"weight": 1, "key": "M", "offset": 0},
                 ],
-                "threshold": 2,
+                "threshold": 1,
             },
             {
                 "inputs": [
                     {"weight": 1, "key": "M", "offset": 0},
                     {"weight": 1, "key": "M", "offset": 1},
                 ],
-                "threshold": 2,
+                "threshold": 1,
             },
         ],
-        "threshold": 1,
+        "threshold": 0,
     }
     bcube = BoundingCube(0, 1, 0, 1, 0, 16, mip=0)
     task = CombineMasksTask(
