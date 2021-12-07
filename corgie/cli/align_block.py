@@ -118,7 +118,6 @@ class AlignBlockJob(scheduling.Job):
         corgie_logger.debug(
             f"Serial alignment, {z_start}->{z_end}, use_starters={self.use_starters}"
         )
-
         for z in z_range:
             bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             # COPY FIRST SECTION OF THE BLOCK
