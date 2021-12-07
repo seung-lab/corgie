@@ -1,10 +1,10 @@
 import pytest
 
 from corgie.helpers import BoolFn
-from corgie.cli.make_segmentation_masks import (
+from corgie.cli.create_segmentation_masks import (
     DetectSlipMisalignmentsJob,
     DetectStepMisalignmentsJob,
-    DetectThreeConescutiveMasks,
+    DetectConsecutiveMasksJob,
 )
 
 
@@ -63,6 +63,40 @@ def test_step_misalignment_logic(stack, result):
     misalignment_evaluation(stack, result, exp)
 
 
+def test_consecutive_masks_exp():
+    exp = DetectConsecutiveMasksJob.get_exp(n=3, key=0)
+    result = {
+        "inputs": [
+            {
+                "inputs": [
+                    {"weight": 1, "key": 0, "offset": -2},
+                    {"weight": 1, "key": 0, "offset": -1},
+                    {"weight": 1, "key": 0, "offset": 0},
+                ],
+                "threshold": 2,
+            },
+            {
+                "inputs": [
+                    {"weight": 1, "key": 0, "offset": -1},
+                    {"weight": 1, "key": 0, "offset": 0},
+                    {"weight": 1, "key": 0, "offset": 1},
+                ],
+                "threshold": 2,
+            },
+            {
+                "inputs": [
+                    {"weight": 1, "key": 0, "offset": 0},
+                    {"weight": 1, "key": 0, "offset": 1},
+                    {"weight": 1, "key": 0, "offset": 2},
+                ],
+                "threshold": 2,
+            },
+        ],
+        "threshold": 0,
+    }
+    assert exp == result
+
+
 @pytest.mark.parametrize(
     "stack, result",
     [
@@ -75,7 +109,7 @@ def test_step_misalignment_logic(stack, result):
     ],
 )
 def test_three_consecutive_masks(stack, result):
-    exp = DetectThreeConescutiveMasks.get_exp()
+    exp = DetectConsecutiveMasksJob.get_exp(n=3, key=0)
     bf = BoolFn(exp)
     mask = [False] * len(stack)
 
