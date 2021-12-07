@@ -161,7 +161,10 @@ class CompareSectionsTask(scheduling.Task):
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option(
-    "--pad", nargs=1, type=int, default=512,
+    "--pad",
+    nargs=1,
+    type=int,
+    default=512,
 )
 @corgie_option("--processor_spec", nargs=1, type=str, multiple=False, required=True)
 @corgie_option("--mip", nargs=1, type=int, multiple=False, required=True)
