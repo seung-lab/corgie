@@ -23,10 +23,11 @@ def get_bcube_from_coords(start_coord, end_coord, coord_mip, cant_be_empty=True)
 def get_bcube_from_vertices(vertices, resolution, mip, cant_be_empty=True):
     bcube_args = []
     for dim in range(3):
-        dim_min = min(vertices[:, dim]) / resolution[dim]
-        dim_max = max(vertices[:, dim]) / resolution[dim] + 1
+        dim_min = int(min(vertices[:, dim]) // resolution[dim])
+        dim_max = int(max(vertices[:, dim]) // resolution[dim]) + 1
         bcube_args.append(dim_min)
         bcube_args.append(dim_max)
+
     bcube = BoundingCube(*bcube_args, mip)
     if cant_be_empty and bcube.area() * bcube.z_size() == 0:
         raise Exception(
