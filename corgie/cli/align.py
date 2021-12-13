@@ -25,7 +25,7 @@ from corgie.cli.downsample import DownsampleJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.compare_sections import CompareSectionsJob
 from corgie.cli.vote import VoteOverZJob
-from corgie.cli.broadcast import BroadcastJob
+from corgie.cli.broadcast_naive import BroadcastNaiveJob
 
 
 @click.command()
@@ -237,6 +237,7 @@ def align(
             while line:
                 skip_list.append(int(line))
                 line = f.readline()
+
     blocks = get_blocks(
         start=bcube.z_range()[0],
         stop=bcube.z_range()[1],
@@ -425,6 +426,9 @@ def align(
     odd_stack.create_sublayer(
         block_field_name, layer_type="field", overwrite=False,
     )
+    cum_block_field = dst_stack.create_sublayer(
+        'cum_block_' + composed_name, layer_type="field", overwrite=True
+    )
     composed_field = dst_stack.create_sublayer(
         composed_name, layer_type="field", overwrite=True
     )
@@ -432,61 +436,34 @@ def align(
         stitch_corrected_field = dst_stack.create_sublayer(
             stitch_corrected_name, layer_type="field", overwrite=False
         )
+
     if restart_stage <= 3:
         corgie_logger.debug("Stitching blocks...")
-        for block, stitch_block in zip(blocks[1:], stitch_blocks):
-            block_bcube = block.broadcastable().get_bcube(bcube)
-            block_list = block.get_neighbors(dist=decay_dist)
-            corgie_logger.debug(f"src_block: {block}")
-            corgie_logger.debug(f"influencing blocks: {block_list}")
-            z_list = [b.stop for b in block_list]
-            # stitch_corrected_field used if there is multi-section block overlap,
-            # which requires voting to produce a corrected field.
-            # If there is only single-section block overlap, then use
-            # stitch_estimated_fields from each stitch_block
-            if stitch_corrected_field is not None:
-                stitching_fields = [stitch_corrected_field]
-            else:
-                # Order with furthest block first (convention of FieldSet).
-                stitching_fields = [
-                    stitch_block.dst_stack[stitch_estimated_name],
-                    stitch_block.src_stack[stitch_estimated_name],
-                ]
+        # stitch_corrected_field used if there is multi-section block overlap,
+        # which requires voting to produce a corrected field.
+        # If there is only single-section block overlap, then use
+        # stitch_estimated_fields from each stitch_block
+        if stitch_corrected_field is None:
+            raise NotImplementedError()
 
-            broadcast_job = BroadcastJob(
-                block_field=block.dst_stack[block_field_name],
-                stitching_fields=stitching_fields,
-                output_field=composed_field,
-                chunk_xy=chunk_xy,
-                bcube=block_bcube,
-                pad=pad,
-                z_list=z_list,
-                mip=processor_mip[-1],
-                decay_dist=decay_dist,
-                blur_rate=blur_rate,
-            )
-            scheduler.register_job(
-                broadcast_job, job_name=f"Broadcast {block} {block_bcube}"
-            )
+        block_zs = [(b.start, b.stop) for b in blocks]
+        block_fields = [b.dst_stack[block_field_name] for b in blocks]
+        broadcast_job = BroadcastNaiveJob(
+            block_fields=block.dst_stack[block_field_name],
+            stitching_field=stitch_corrected_field,
+            output_field=composed_field,
+            chunk_xy=chunk_xy,
+            bcube=bcube,
+            pad=pad,
+            block_zs=block_zs,
+            mip=processor_mip[-1],
+        )
 
+        scheduler.register_job(
+            broadcast_job, job_name=f"Broadcasting!"
+        )
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
-
-        if len(blocks) > 1:
-            block_bcube = blocks[0].get_bcube(bcube)
-            copy_job = CopyLayerJob(
-                src_layer=even_stack[block_field_name],
-                dst_layer=composed_field,
-                mip=processor_mip[-1],
-                bcube=block_bcube,
-                chunk_xy=chunk_xy,
-                chunk_z=1,
-            )
-            scheduler.register_job(
-                copy_job, job_name=f"Copy first block_field to composed_field location"
-            )
-            scheduler.execute_until_completion()
-            corgie_logger.debug("Done!")
 
     if restart_stage <= 4:
         if len(blocks) == 1:
