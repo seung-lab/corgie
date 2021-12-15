@@ -517,7 +517,7 @@ def align(
                 chunk_xy=chunk_xy,
                 chunk_z=1,
                 render_masks=True,
-                blackout_masks=False,
+                blackout_masks=True,
                 additional_fields=[composed_field],
             )
             scheduler.register_job(
