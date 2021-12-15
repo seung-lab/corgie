@@ -4,6 +4,7 @@ from cloudvolume import PrecomputedSkeleton, Skeleton
 import numpy as np
 import os
 import pickle
+import time
 
 from corgie import scheduling, argparsers, stack
 from corgie.log import logger as corgie_logger
@@ -33,6 +34,10 @@ class GenerateNewSkeletonTask(scheduling.Task):
         super().__init__()
 
     def execute(self):
+
+        corgie_logger.info(
+            f"Generate new skeleton vertices task for id {self.skeleton_id_str}"
+        )
         skeleton = get_skeleton(self.src_path, self.skeleton_id_str)
         if self.vertex_sort:
             vertex_sort = skeleton.vertices[:, 2].argsort()
@@ -103,11 +108,17 @@ class TransformSkeletonVerticesTask(scheduling.Task):
         super().__init__()
 
     def execute(self):
+        corgie_logger.info(
+            f"Starting transform skeleton vertices task for id {self.skeleton_id_str}"
+        )
+
         skeleton = get_skeleton(self.src_path, self.skeleton_id_str)
+
         if self.vertex_sort:
             vertex_sort = skeleton.vertices[:, 2].argsort()
         else:
             vertex_sort = np.arange(0, len(skeleton.vertices))
+
         # How many vertices we will use at once to get a bcube to download from the vector field
         vertex_process_size = 50
         vertices_to_transform = skeleton.vertices[
@@ -149,6 +160,10 @@ class TransformSkeletonVerticesTask(scheduling.Task):
                 else self.vector_field_layer.resolution(self.field_mip)
             )
             vectors_to_add = []
+            corgie_logger.info(f"{field_data.shape}, {field_indices.max(0)}")
+            for i in range(len(field_data.shape)-1):
+                if field_indices.max(0)[i] >= field_data.shape[i]:
+                    import pdb; pdb.set_trace()
             for cur_field_index in field_indices:
                 vector_at_point = field_data[
                     cur_field_index[0], cur_field_index[1], cur_field_index[2]
@@ -164,6 +179,7 @@ class TransformSkeletonVerticesTask(scheduling.Task):
             vectors_to_add = np.array(vectors_to_add)
             current_batch_warped_vertices = current_batch_vertices + vectors_to_add
             new_vertices.append(current_batch_warped_vertices)
+
         new_vertices = np.concatenate(new_vertices)
         cf = CloudFiles(f"{self.dst_path}/intermediary_arrays/")
         cf.put(
@@ -371,8 +387,6 @@ def transform_skeletons(
 
     skeleton_length_file = None
     if calculate_skeleton_lengths:
-        import time
-
         if not os.path.exists("skeleton_lengths"):
             os.makedirs("skeleton_lengths")
         skeleton_length_file = f"skeleton_lengths/skeleton_lengths_{int(time.time())}"

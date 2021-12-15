@@ -52,6 +52,7 @@ class CompareSectionsJob(scheduling.Job):
         self.processor_spec = processor_spec
         self.mip = mip
         self.pixel_offset_layer = pixel_offset_layer
+
         if seethrough_limit is None or seethrough_limit == tuple():
             # If limit not specified, no limit
             self.seethrough_limit = [0] * len(self.processor_spec)
@@ -142,7 +143,6 @@ class CompareSectionsTask(scheduling.Task):
     def execute(self):
         src_bcube = self.bcube.uncrop(self.pad, self.mip)
         tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)
-
         processor = procspec.parse_proc(spec_str=self.processor_spec)
 
         _, tgt_data_dict = self.tgt_stack.read_data_dict(
@@ -216,7 +216,7 @@ class CompareSectionsTask(scheduling.Task):
     help="Specification for the destination layer. Must be an image or mask type.",
 )
 @corgie_option("--reference_key", nargs=1, type=str, default="img")
-@corgie_optgroup("Compute Field Method Specification")
+@corgie_optgroup("Compare Sections Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option(
     "--pad",
@@ -287,13 +287,12 @@ def compare_sections(
 
     if crop is None:
         crop = pad
-
     compare_job = CompareSectionsJob(
         src_stack=src_stack,
         tgt_stack=tgt_stack,
         dst_layer=dst_layer,
         chunk_xy=chunk_xy,
-        processor_spec=processor_spec,
+        processor_spec=[processor_spec],
         pad=pad,
         crop=crop,
         bcube=bcube,

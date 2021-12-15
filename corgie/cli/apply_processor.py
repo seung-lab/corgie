@@ -167,6 +167,7 @@ class ApplyProcessorTask(scheduling.Task):
 @corgie_option("--reference_key", nargs=1, type=str, default="img")
 @corgie_optgroup("Apply Processor Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
+@corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option(
@@ -193,6 +194,7 @@ def apply_processor(
     crop,
     chunk_xy,
     start_coord,
+    force_chunk_xy,
     processor_mip,
     end_coord,
     coord_mip,
@@ -209,12 +211,16 @@ def apply_processor(
     if reference_key in src_stack.layers:
         reference_layer = src_stack.layers[reference_key]
 
+    if force_chunk_xy is None:
+        force_chunk_xy = chunk_xy
+
     dst_layer = create_layer_from_spec(
         dst_layer_spec,
-        allowed_types=["img", "mask", "section_value"],
+        allowed_types=["img", "mask", "section_value", "field"],
         default_type="img",
         readonly=False,
         caller_name="dst_layer",
+        force_chunk_xy=force_chunk_xy,
         reference=reference_layer,
         overwrite=True,
     )
