@@ -2,6 +2,7 @@ from dataclasses import astuple, dataclass
 
 import numpy as np
 import torch
+from copy import deepcopy
 
 
 class Binarizer:
@@ -67,11 +68,17 @@ class Translation:
     def round(self, ndigits=None):
         return Translation(round(self.x, ndigits), round(self.y, ndigits))
 
+    def copy(self):
+        return deepcopy(self)
+
     def round_to_mip(self, src_mip, tgt_mip):
-        if tgt_mip <= src_mip:
+        if tgt_mip is None:
             return self.copy()
-        snap_factor = 2 ** (tgt_mip - src_mip)
-        return (self // snap_factor) * snap_factor
+        elif tgt_mip <= src_mip:
+            return Translation(self.x, self.y)  # Return copy
+        else:
+            snap_factor = 2 ** (tgt_mip - src_mip)
+            return (self // snap_factor) * snap_factor
 
 
 def percentile_trans_adjuster(field, h=25, l=75, unaligned_img=None):
@@ -178,3 +185,7 @@ def coarsen_mask(mask, n=1, flip=False):
         mask = mask
 
     return mask
+
+
+def zeros(*args, **kwargs):
+    return torch.zeros(*args, **kwargs)

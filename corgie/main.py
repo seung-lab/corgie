@@ -67,7 +67,8 @@ def cli(ctx, device, verbose, **kwargs):
         configure_logger(verbose)
         ctx.obj = {}
         DataBackendBase.default_device = device
-        corgie_logger.debug("Creting scheduler...")
+        corgie_logger.debug("Creating scheduler...")
+        kwargs['command_name'] = ctx.command.name
         ctx.obj['scheduler'] = scheduling.parse_scheduler_from_kwargs(
                 kwargs)
 

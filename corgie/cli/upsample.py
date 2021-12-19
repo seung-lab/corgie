@@ -27,7 +27,7 @@ class UpsampleJob(scheduling.Job):
         mips_per_task=3,
     ):
         if dst_layer is None:
-            dset_layer = src_layer
+            dst_layer = src_layer
         self.src_layer = src_layer
         self.dst_layer = dst_layer
         self.mip_start = mip_start

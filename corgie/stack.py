@@ -6,6 +6,7 @@
 # section is a stack with thickness == 1
 import copy
 import os
+import math
 
 import six
 
@@ -106,10 +107,20 @@ class Stack(StackBase):
         for l in layer_list:
             self.add_layer(l)
 
-    def create_sublayer(self, name, layer_type, suffix="", reference=None, **kwargs):
+    def create_sublayer(
+        self,
+        name,
+        layer_type,
+        suffix="",
+        reference=None,
+        attach_to_stack=True,
+        custom_folder=None,
+        **kwargs,
+    ):
         if self.folder is None:
             raise exceptions.CorgieException(
-                "Stack must have 'folder' field set " "before sublayers can be created"
+                "Stack must have 'folder' field set "
+                "before sublayers can be created"
             )
 
         if self.reference_layer is None and reference is None:
@@ -121,12 +132,34 @@ class Stack(StackBase):
         if reference is None:
             reference = self.reference_layer
 
-        path = os.path.join(self.folder, layer_type, f"{name}{suffix}")
+        folder = custom_folder or self.folder 
+        path = os.path.join(folder, layer_type, f"{name}{suffix}")
         l = reference.backend.create_layer(
-            path=path, layer_type=layer_type, name=name, reference=reference, **kwargs
+            path=path,
+            layer_type=layer_type,
+            name=name,
+            reference=reference,
+            **kwargs,
         )
-        self.add_layer(l)
+        if attach_to_stack:
+            self.add_layer(l)
         return l
+
+    def create_unattached_sublayer(
+        self, name, layer_type, suffix="", reference=None, **kwargs
+    ):
+        """
+        Create a sublayer that does not get added to the stack.
+        Make separate function for the sake of readability.
+        """
+        return self.create_sublayer(
+            name,
+            layer_type,
+            suffix=suffix,
+            reference=reference,
+            attach_to_stack=False,
+            **kwargs,
+        )
 
     def read_data_dict(
         self,
@@ -224,24 +257,22 @@ class FieldSet:
     def append(self, layer):
         self.layers.append(layer)
 
-    def get_field(self, layer, bcube, mip, **kwargs):
-        """Get field, adjusted by distance
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field
 
         Args:
             layer (Layer)
             bcube (BoundingCube)
             mip (int)
-            # dist (float)
+            dist (float)
 
         Returns:
-            TorchField # adjusted (blurred/attenuated) by distance
+            TorchField
         """
-        # TODO: add ability to get blurred field using trilinear interpolation
-        # c = min(max(dist / self.decay_dist, 0.), 1.)
-        corgie_logger.debug(f"get_field")
-        corgie_logger.debug(f"\tlayer={layer}")
-        corgie_logger.debug(f"\tbcube={bcube}")
-        corgie_logger.debug(f"\tmip={mip}")
+        # corgie_logger.debug(f"get_field")
+        # corgie_logger.debug(f"\tlayer={layer}")
+        # corgie_logger.debug(f"\tbcube={bcube}")
+        # corgie_logger.debug(f"\tmip={mip}")
         for k, v in kwargs.items():
             corgie_logger.debug(f"\t{k}={v}")
 
@@ -263,20 +294,108 @@ class FieldSet:
         z = z_list[0]
         layer = self.layers[0]
         abcube = bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
-        agg_field = self.get_field(layer=layer, bcube=abcube, mip=mip, **kwargs)
-
+        agg_field = self.get_field(
+            layer=layer, bcube=abcube, mip=mip, dist=src_z - z, **kwargs
+        )
         for z, layer in zip(z_list[1:], self.layers[1:]):
             trans = helpers.percentile_trans_adjuster(agg_field)
+            corgie_logger.debug(f"{trans} initial")
             trans = trans.round_to_mip(mip, layer.data_mip)
-            corgie_logger.debug(f"{trans}")
-            abcube = abcube.reset_coords(zs=z, ze=z + 1, in_place=True)
+            corgie_logger.debug(f"{trans} round from M{mip} to M{layer.data_mip}")
+            abcube = bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             abcube = abcube.translate(x_offset=trans.y, y_offset=trans.x, mip=mip)
             trans = trans.to_tensor(device=agg_field.device)
             agg_field -= trans
             agg_field = agg_field.from_pixels()
-            this_field = self.get_field(layer=layer, bcube=abcube, mip=mip, **kwargs)
+            this_field = self.get_field(
+                layer=layer, bcube=abcube, mip=mip, dist=src_z - z, **kwargs
+            )
             this_field = this_field.from_pixels()
             agg_field = agg_field(this_field)
             agg_field = agg_field.pixels()
             agg_field += trans
         return agg_field
+
+
+class DistanceFieldSet(FieldSet):
+    def __init__(self, decay_dist, layers=[]):
+        """Compose set of fields, linearly scaling fields based on distance from source"""
+        super().__init__(layers)
+        self.decay_dist = decay_dist
+
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field, adjusted by distance
+
+        Args:
+            layer (Layer)
+            bcube (BoundingCube)
+            mip (int)
+            dist (float)
+
+        Returns:
+            TorchField adjusted (blurred/attenuated) by distance
+        """
+        # TODO: add ability to get blurred field using trilinear interpolation
+        c = min(max(1.0 - (dist / self.decay_dist), 0.0), 1.0)
+        corgie_logger.debug(f"get_field, c={c}")
+        # TODO: ignore getting field if c==0
+        # corgie_logger.debug(f"\tlayer={layer}")
+        # corgie_logger.debug(f"\tbcube={bcube}")
+        # corgie_logger.debug(f"\tmip={mip}")
+        for k, v in kwargs.items():
+            corgie_logger.debug(f"\t{k}={v}")
+
+        f = layer.read(bcube=bcube, mip=mip, **kwargs).field_()
+        return f * c
+
+
+class PyramidDistanceFieldSet(FieldSet):
+    def __init__(self, decay_dist, blur_rate, layers=[]):
+        """Compose set of fields, linearly scaling & blurring fields based on distance
+        from source.
+
+        Requires that the field be downsampled into MIP-pyramid by factors of 2.
+
+        NOTE: We are currently generating field pyramids with a box filter. We may want
+        to change this to a Gaussian for a more precise filtering.
+
+        Args:
+            decay_dist (float): distance beyond which a field does not influence a neighbor
+            blur_rate (float): rate of blurring increase with section distance. Can be roughly 
+                considered the change in size of std of gaussian kernel per single section (we
+                currently create the MIP hierarchy with a box filter). For example, if the std 
+                increases by 1 px every 10 sections, then blur_rate = 0.1.
+        """
+        super().__init__(layers)
+        self.decay_dist = decay_dist
+        self.blur_rate = blur_rate
+
+    def get_field(self, layer, bcube, mip, dist, **kwargs):
+        """Get field, adjusted by distance
+
+        Args:
+            layer (Layer)
+            bcube (BoundingCube)
+            mip (int)
+            dist (float)
+
+        Returns:
+            TorchField adjusted (blurred & attenuated) by distance
+        """
+        c = min(max(1.0 - (dist / self.decay_dist), 0.0), 1.0)
+        sigma_mip = math.log(dist * self.blur_rate + 1, 2)
+        lower_mip = math.floor(sigma_mip)
+        upper_mip = math.ceil(sigma_mip)
+        corgie_logger.debug(
+            f"get_field, c={c:.3f}, mip={sigma_mip+mip:.3f}, lower_mip={lower_mip+mip}, upper_mip={upper_mip+mip}"
+        )
+        if lower_mip == upper_mip:
+            f = layer.read(bcube=bcube, mip=lower_mip + mip, **kwargs).field_()
+        else:
+            lf = layer.read(bcube=bcube, mip=lower_mip + mip, **kwargs).field_()
+            uf = layer.read(bcube=bcube, mip=upper_mip + mip, **kwargs).field_()
+            uf = uf.up(mips=1) * 2
+            alpha = sigma_mip - lower_mip
+            f = alpha * lf + (1 - alpha) * uf
+        f = f.up(mips=lower_mip) * (2 ** lower_mip)
+        return f * c

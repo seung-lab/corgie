@@ -1,5 +1,6 @@
 import click
 import procspec
+import torch
 
 from corgie import scheduling, argparsers, helpers
 
@@ -31,8 +32,9 @@ class CompareSectionsJob(scheduling.Job):
         tgt_z_offset,
         tgt_stack=None,
         suffix="",
+        seethrough_limit=None,
+        pixel_offset_layer=None,
     ):
-
         self.src_stack = src_stack
         if tgt_stack is None:
             tgt_stack = src_stack
@@ -49,30 +51,65 @@ class CompareSectionsJob(scheduling.Job):
 
         self.processor_spec = processor_spec
         self.mip = mip
+        self.pixel_offset_layer = pixel_offset_layer
+
+        if seethrough_limit is None or seethrough_limit == tuple():
+            # If limit not specified, no limit
+            self.seethrough_limit = [0] * len(self.processor_spec)
+        else:
+            self.seethrough_limit = seethrough_limit
+
+        self._validate_seethrough()
+
         super().__init__()
 
     def task_generator(self):
-        cs_task = helpers.PartialSpecification(
-            CompareSectionsTask,
-            processor_spec=self.processor_spec,
-            tgt_z_offset=self.tgt_z_offset,
-            src_stack=self.src_stack,
-            pad=self.pad,
-            crop=self.crop,
-            tgt_stack=self.tgt_stack,
-        )
+        for i in range(len(self.processor_spec)):
+            cs_task = helpers.PartialSpecification(
+                CompareSectionsTask,
+                processor_spec=self.processor_spec[i],
+                tgt_z_offset=self.tgt_z_offset,
+                src_stack=self.src_stack,
+                pad=self.pad,
+                crop=self.crop,
+                tgt_stack=self.tgt_stack,
+                seethrough_limit=self.seethrough_limit[i],
+                pixel_offset_layer=self.pixel_offset_layer,
+            )
 
-        chunked_job = ChunkedJob(
-            task_class=cs_task,
-            dst_layer=self.dst_layer,
-            chunk_xy=self.chunk_xy,
-            chunk_z=1,
-            mip=self.mip,
-            bcube=self.bcube,
-            suffix=self.suffix,
-        )
+            chunked_job = ChunkedJob(
+                task_class=cs_task,
+                dst_layer=self.dst_layer,
+                chunk_xy=self.chunk_xy,
+                chunk_z=1,
+                mip=self.mip,
+                bcube=self.bcube,
+                suffix=self.suffix,
+            )
 
-        yield from chunked_job.task_generator
+            yield from chunked_job.task_generator
+
+            # Each seethrough processor writes to the same mask layer, so we
+            # wait for each processor to finish to avoid race conditions.
+            if i < len(self.processor_spec) - 1:
+                yield scheduling.wait_until_done
+
+    def _validate_seethrough(self):
+        num_ps = len(self.processor_spec)
+        num_sl = len(self.seethrough_limit)
+        if num_ps != num_sl:
+            raise ValueError(
+                f"{num_ps} processors and {num_sl} seethrough limits specified to a CompareSectionsJob. These must be equal."
+            )
+        for sl in self.seethrough_limit:
+            if type(sl) != int:
+                raise ValueError(
+                    f"Specified seethrough limit {sl} is not an integer"
+                )
+            if sl < 0:
+                raise ValueError(
+                    f"Seethrough limits to CompareSectionsJobs must be non-negative."
+                )
 
 
 class CompareSectionsTask(scheduling.Task):
@@ -87,6 +124,8 @@ class CompareSectionsTask(scheduling.Task):
         crop,
         tgt_z_offset,
         bcube,
+        seethrough_limit,
+        pixel_offset_layer,
     ):
         super().__init__()
         self.processor_spec = processor_spec
@@ -98,11 +137,12 @@ class CompareSectionsTask(scheduling.Task):
         self.crop = crop
         self.tgt_z_offset = tgt_z_offset
         self.bcube = bcube
+        self.seethrough_limit = seethrough_limit
+        self.pixel_offset_layer = pixel_offset_layer
 
     def execute(self):
         src_bcube = self.bcube.uncrop(self.pad, self.mip)
         tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)
-
         processor = procspec.parse_proc(spec_str=self.processor_spec)
 
         _, tgt_data_dict = self.tgt_stack.read_data_dict(
@@ -117,8 +157,33 @@ class CompareSectionsTask(scheduling.Task):
 
         result = processor(processor_input, output_key="result")
 
+        tgt_pixel_data = self.pixel_offset_layer.read(
+            bcube=self.bcube.translate(z_offset=self.tgt_z_offset), mip=self.mip
+        )
+        written_pixel_data = self.pixel_offset_layer.read(
+            bcube=self.bcube, mip=self.mip
+        )
+        written_mask_data = self.dst_layer.read(bcube=self.bcube, mip=self.mip)
+        result = result.to(device=written_mask_data.device)
         cropped_result = helpers.crop(result, self.crop)
-        self.dst_layer.write(cropped_result, bcube=self.bcube, mip=self.mip)
+        if self.seethrough_limit > 0:
+            seethrough_mask = (cropped_result > 0) & (
+                tgt_pixel_data < self.seethrough_limit
+            )
+        else:
+            seethrough_mask = cropped_result > 0
+        written_mask_data[seethrough_mask] = True
+        written_pixel_data[seethrough_mask] = (
+            torch.minimum(
+                tgt_pixel_data[seethrough_mask],
+                torch.ones_like(tgt_pixel_data[seethrough_mask]) * 254,
+            )
+            + 1
+        )
+        self.dst_layer.write(written_mask_data, bcube=self.bcube, mip=self.mip)
+        self.pixel_offset_layer.write(
+            written_pixel_data, bcube=self.bcube, mip=self.mip
+        )
 
 
 @click.command()
@@ -151,7 +216,7 @@ class CompareSectionsTask(scheduling.Task):
     help="Specification for the destination layer. Must be an image or mask type.",
 )
 @corgie_option("--reference_key", nargs=1, type=str, default="img")
-@corgie_optgroup("Compute Field Method Specification")
+@corgie_optgroup("Compare Sections Method Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option(
     "--pad",
@@ -160,7 +225,9 @@ class CompareSectionsTask(scheduling.Task):
     default=512,
 )
 @corgie_option("--crop", nargs=1, type=int, default=None)
-@corgie_option("--processor_spec", nargs=1, type=str, multiple=False, required=True)
+@corgie_option(
+    "--processor_spec", nargs=1, type=str, multiple=False, required=True
+)
 @corgie_option("--mip", nargs=1, type=int, multiple=False, required=True)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
@@ -194,7 +261,9 @@ def compare_sections(
     scheduler = ctx.obj["scheduler"]
 
     corgie_logger.debug("Setting up layers...")
-    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
+    src_stack = create_stack_from_spec(
+        src_layer_spec, name="src", readonly=True
+    )
 
     tgt_stack = create_stack_from_spec(
         tgt_layer_spec, name="tgt", readonly=True, reference=src_stack
@@ -218,13 +287,12 @@ def compare_sections(
 
     if crop is None:
         crop = pad
-
     compare_job = CompareSectionsJob(
         src_stack=src_stack,
         tgt_stack=tgt_stack,
         dst_layer=dst_layer,
         chunk_xy=chunk_xy,
-        processor_spec=processor_spec,
+        processor_spec=[processor_spec],
         pad=pad,
         crop=crop,
         bcube=bcube,

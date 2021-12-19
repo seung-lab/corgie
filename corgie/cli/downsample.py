@@ -163,7 +163,6 @@ def downsample(
             caller_name="dst_layer layer",
             readonly=False,
             reference=src_layer,
-            chunk_z=chunk_z,
             overwrite=True,
         )
 

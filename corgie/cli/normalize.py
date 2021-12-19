@@ -139,6 +139,7 @@ class NormalizeTask(scheduling.Task):
 @corgie_option("--mip_end", "-e", nargs=1, type=int, required=True)
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=2048)
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)
+@corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--mask_value", nargs=1, type=float, default=0.0)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
@@ -154,6 +155,7 @@ def normalize(
     mip_end,
     chunk_xy,
     chunk_z,
+    force_chunk_xy,
     start_coord,
     end_coord,
     coord_mip,
@@ -176,6 +178,9 @@ def normalize(
 
     if stats_mip is None:
         stats_mip = mip_end
+
+    if not force_chunk_xy:
+        force_chunk_xy = chunk_xy
 
     corgie_logger.debug("Setting up layers...")
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
@@ -233,6 +238,7 @@ def normalize(
             path=os.path.join(dst_folder, "img", f"{l.name}{suffix}"),
             layer_type=l.get_layer_type(),
             dtype="float32",
+            force_chunk_xy=force_chunk_xy,
             overwrite=True,
         )
 
