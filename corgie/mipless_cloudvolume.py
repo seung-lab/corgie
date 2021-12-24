@@ -94,15 +94,10 @@ class MiplessCloudVolume():
         self.obj = obj
         self.cvs = {}
 
-<<<<<<< HEAD
-
         self.info = None
         self.fetch_info()
 
         if "info" in self.cv_params and overwrite:
-=======
-        if 'info' in self.cv_params and overwrite:
->>>>>>> 152ddffc283ecf41084f837d3a08bea4a672a836
             self.store_info()
 
     # def exists(self):
