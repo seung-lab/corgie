@@ -17,8 +17,6 @@ def jsonize_key(*kargs, **kwargs):
     result += json.dumps(kwargs, sort_keys=True)
     return result
 
-<<<<<<< HEAD
-
 def cv_is_cached(*kargs, **kwargs):
     key = jsonize_key(*kargs, **kwargs)
     return key in cv_cache
