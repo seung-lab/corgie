@@ -49,7 +49,7 @@ class StackBase:
 
     def read_data_dict(self, **index):
         result = {}
-        for l in self.layers:
+        for l in layers:
             result[l.name] = l.read(**index)
         raise NotImplementedError
 
@@ -99,9 +99,10 @@ class Stack(StackBase):
         custom_folder=None,
         **kwargs,
     ):
-        if (self.folder is None) and (custom_folder is None):
+        if self.folder is None:
             raise exceptions.CorgieException(
-                "Stack must have 'folder' field set " "before sublayers can be created"
+                "Stack must have 'folder' field set "
+                "before sublayers can be created"
             )
 
         if self.reference_layer is None and reference is None:
@@ -113,7 +114,7 @@ class Stack(StackBase):
         if reference is None:
             reference = self.reference_layer
 
-        folder = custom_folder or self.folder
+        folder = custom_folder or self.folder 
         path = os.path.join(folder, layer_type, f"{name}{suffix}")
         l = reference.backend.create_layer(
             path=path,
@@ -346,7 +347,7 @@ class PyramidDistanceFieldSet(FieldSet):
 
         Args:
             decay_dist (float): distance beyond which a field does not influence a neighbor
-            blur_rate (float): rate of blurring increase with section distance. Can be roughly
+            blur_rate (float): rate of blurring increase with section distance. Can be roughly 
                 considered the change in size of std of gaussian kernel per single section (we
                 currently create the MIP hierarchy with a box filter). For example, if the std 
                 increases by 1 px every 10 sections, then blur_rate = 0.1.
