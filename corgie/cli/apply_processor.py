@@ -16,6 +16,7 @@ from corgie.argparsers import (
 )
 
 from corgie.cli.common import ChunkedJob
+from corgie.cli.downsample import DownsampleJob
 
 
 class ApplyProcessorJob(scheduling.Job):
@@ -171,10 +172,7 @@ class ApplyProcessorTask(scheduling.Task):
 @corgie_option("--chunk_z", nargs=1, type=int, default=1)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option(
-    "--pad",
-    nargs=1,
-    type=int,
-    default=512,
+    "--pad", nargs=1, type=int, default=512,
 )
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option("--processor_spec", nargs=1, type=str, multiple=True, required=True)

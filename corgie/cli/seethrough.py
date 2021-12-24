@@ -1,27 +1,19 @@
 import click
-from copy import deepcopy
 
-from corgie import scheduling, argparsers, helpers, stack
+from corgie import scheduling, helpers, stack
 
 from corgie.log import logger as corgie_logger
-from corgie.layers import get_layer_types, DEFAULT_LAYER_TYPE, str_to_layer_type
 from corgie.boundingcube import get_bcube_from_coords
 
 from corgie.argparsers import (
     LAYER_HELP_STR,
-    create_layer_from_spec,
     corgie_optgroup,
     corgie_option,
     create_stack_from_spec,
 )
 
 from corgie.cli.render import RenderJob
-from corgie.cli.copy import CopyJob
-from corgie.cli.compute_field import ComputeFieldJob
-from corgie.cli.compare_sections import CompareSectionsJob
-
-from corgie.cli.downsample import DownsampleJob
-from corgie.cli.upsample import UpsampleJob
+from corgie.cli.common import ChunkedJob
 
 
 class SeethroughBlockJob(scheduling.Job):
@@ -97,6 +89,172 @@ class SeethroughBlockJob(scheduling.Job):
                 yield scheduling.wait_until_done
 
 
+class SeethroughCompareJob(scheduling.Job):
+    def __init__(
+        self,
+        src_stack,
+        dst_layer,
+        chunk_xy,
+        processor_spec,
+        mip,
+        pad,
+        crop,
+        bcube,
+        tgt_z_offset,
+        tgt_stack=None,
+        suffix="",
+        seethrough_limit=None,
+        pixel_offset_layer=None,
+    ):
+        self.src_stack = src_stack
+        if tgt_stack is None:
+            tgt_stack = src_stack
+
+        self.tgt_stack = tgt_stack
+        self.dst_layer = dst_layer
+        self.chunk_xy = chunk_xy
+        self.pad = pad
+        self.crop = crop
+        self.bcube = bcube
+        self.tgt_z_offset = tgt_z_offset
+
+        self.suffix = suffix
+
+        self.processor_spec = processor_spec
+        self.mip = mip
+        self.pixel_offset_layer = pixel_offset_layer
+        if seethrough_limit is None or seethrough_limit == tuple():
+            # If limit not specified, no limit
+            self.seethrough_limit = [0] * len(self.processor_spec)
+        else:
+            self.seethrough_limit = seethrough_limit
+
+        self._validate_seethrough()
+
+        super().__init__()
+
+    def task_generator(self):
+        for i in range(len(self.processor_spec)):
+            cs_task = helpers.PartialSpecification(
+                SeethroughCompareTask,
+                processor_spec=self.processor_spec[i],
+                tgt_z_offset=self.tgt_z_offset,
+                src_stack=self.src_stack,
+                pad=self.pad,
+                crop=self.crop,
+                tgt_stack=self.tgt_stack,
+                seethrough_limit=self.seethrough_limit[i],
+                pixel_offset_layer=self.pixel_offset_layer,
+            )
+
+            chunked_job = ChunkedJob(
+                task_class=cs_task,
+                dst_layer=self.dst_layer,
+                chunk_xy=self.chunk_xy,
+                chunk_z=1,
+                mip=self.mip,
+                bcube=self.bcube,
+                suffix=self.suffix,
+            )
+
+            yield from chunked_job.task_generator
+
+            # Each seethrough processor writes to the same mask layer, so we
+            # wait for each processor to finish to avoid race conditions.
+            if i < len(self.processor_spec) - 1:
+                yield scheduling.wait_until_done
+
+    def _validate_seethrough(self):
+        num_ps = len(self.processor_spec)
+        num_sl = len(self.seethrough_limit)
+        if num_ps != num_sl:
+            raise ValueError(
+                f"{num_ps} processors and {num_sl} seethrough limits specified to a SeethroughCompareJob. These must be equal."
+            )
+        for sl in self.seethrough_limit:
+            if type(sl) != int:
+                raise ValueError(f"Specified seethrough limit {sl} is not an integer")
+            if sl < 0:
+                raise ValueError(
+                    f"Seethrough limits to SeethroughCompareJobs must be non-negative."
+                )
+
+
+class SeethroughCompareTask(scheduling.Task):
+    def __init__(
+        self,
+        processor_spec,
+        src_stack,
+        tgt_stack,
+        dst_layer,
+        mip,
+        pad,
+        crop,
+        tgt_z_offset,
+        bcube,
+        seethrough_limit,
+        pixel_offset_layer,
+    ):
+        super().__init__()
+        self.processor_spec = processor_spec
+        self.src_stack = src_stack
+        self.tgt_stack = tgt_stack
+        self.dst_layer = dst_layer
+        self.mip = mip
+        self.pad = pad
+        self.crop = crop
+        self.tgt_z_offset = tgt_z_offset
+        self.bcube = bcube
+        self.seethrough_limit = seethrough_limit
+        self.pixel_offset_layer = pixel_offset_layer
+
+    def execute(self):
+        src_bcube = self.bcube.uncrop(self.pad, self.mip)
+        tgt_bcube = src_bcube.translate(z_offset=self.tgt_z_offset)
+
+        processor = procspec.parse_proc(spec_str=self.processor_spec)
+
+        _, tgt_data_dict = self.tgt_stack.read_data_dict(
+            tgt_bcube, mip=self.mip, stack_name="tgt"
+        )
+
+        _, src_data_dict = self.src_stack.read_data_dict(
+            src_bcube, mip=self.mip, stack_name="src"
+        )
+
+        processor_input = {**src_data_dict, **tgt_data_dict}
+
+        result = processor(processor_input, output_key="result")
+
+        tgt_pixel_data = self.pixel_offset_layer.read(
+            bcube=self.bcube.translate(z_offset=self.tgt_z_offset), mip=self.mip
+        )
+        written_pixel_data = self.pixel_offset_layer.read(
+            bcube=self.bcube, mip=self.mip
+        )
+        written_mask_data = self.dst_layer.read(bcube=self.bcube, mip=self.mip)
+        result = result.to(device=written_mask_data.device)
+        cropped_result = helpers.crop(result, self.crop)
+        if self.seethrough_limit > 0:
+            seethrough_mask = (cropped_result > 0) & (
+                tgt_pixel_data < self.seethrough_limit
+            )
+        else:
+            seethrough_mask = cropped_result > 0
+        written_mask_data[seethrough_mask] = True
+        written_pixel_data[seethrough_mask] = (
+            torch.minimum(
+                tgt_pixel_data[seethrough_mask],
+                torch.ones_like(tgt_pixel_data[seethrough_mask]) * 254,
+            )
+            + 1
+        )
+        self.dst_layer.write(written_mask_data, bcube=self.bcube, mip=self.mip)
+        self.pixel_offset_layer.write(
+            written_pixel_data, bcube=self.bcube, mip=self.mip
+        )
+
+
 @click.command()
 # Layers
 @corgie_optgroup("Layer Parameters")
@@ -164,9 +322,7 @@ def seethrough_block(
 
     crop, pad = 0, 0
     corgie_logger.debug("Setting up layers...")
-    src_stack = create_stack_from_spec(
-        src_layer_spec, name="src", readonly=True
-    )
+    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
     dst_stack = stack.create_stack_from_reference(
         reference_stack=src_stack,
@@ -179,14 +335,10 @@ def seethrough_block(
         force_chunk_z=force_chunk_z,
     )
     render_method = helpers.PartialSpecification(
-        f=RenderJob,
-        pad=pad,
-        chunk_xy=chunk_xy,
-        chunk_z=1,
-        render_masks=False,
+        f=RenderJob, pad=pad, chunk_xy=chunk_xy, chunk_z=1, render_masks=False,
     )
     seethrough_method = helpers.PartialSpecification(
-        f=CompareSectionsJob,
+        f=SeethroughCompareJob,
         mip=seethrough_spec_mip,
         processor_spec=seethrough_spec,
         chunk_xy=chunk_xy,

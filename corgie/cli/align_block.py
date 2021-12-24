@@ -19,7 +19,7 @@ from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
 from corgie.cli.vote import VoteOverFieldsJob
 from corgie.cli.compute_field import ComputeFieldJob
-from corgie.cli.compare_sections import CompareSectionsJob
+from corgie.cli.seethrough import SeethroughCompareJob
 
 from corgie.cli.downsample import DownsampleJob
 from corgie.cli.upsample import UpsampleJob
@@ -100,9 +100,7 @@ class AlignBlockJob(scheduling.Job):
         # Set up seethrough layers
         if self.seethrough_method is not None:
             seethrough_mask_layer = self.dst_stack.create_sublayer(
-                f"seethrough_mask{self.suffix}",
-                layer_type="mask",
-                overwrite=True,
+                f"seethrough_mask{self.suffix}", layer_type="mask", overwrite=True,
             )
             pixel_offset_layer = tgt_stack.create_unattached_sublayer(
                 f"pixel_offset{self.suffix}", layer_type="img", overwrite=True
@@ -183,9 +181,7 @@ class AlignBlockJob(scheduling.Job):
                     yield scheduling.wait_until_done
                 elif self.vote_dist == 1:
                     offset = -z_step
-                    corgie_logger.debug(
-                        f"Compute final field field {z+offset}<{z}"
-                    )
+                    corgie_logger.debug(f"Compute final field field {z+offset}<{z}")
                     compute_field_job = self.cf_method(
                         src_stack=self.src_stack,
                         tgt_stack=tgt_stack,
@@ -221,7 +217,7 @@ class AlignBlockJob(scheduling.Job):
                 if self.seethrough_method is not None:
                     # This sequence can be bundled into a "seethrough render" job
                     # First, adjust the field to the appropriate MIP for seethrough rendering
-                    if (self.cf_method["processor_mip"][-1] < self.seethrough_method.mip):
+                    if self.cf_method["processor_mip"][-1] < self.seethrough_method.mip:
                         downsample_job = DownsampleJob(
                             src_layer=final_field,
                             chunk_xy=self.cf_method["chunk_xy"],
@@ -232,7 +228,9 @@ class AlignBlockJob(scheduling.Job):
                         )
                         yield from downsample_job.task_generator
                         yield scheduling.wait_until_done
-                    elif (self.cf_method["processor_mip"][-1] > self.seethrough_method.mip):
+                    elif (
+                        self.cf_method["processor_mip"][-1] > self.seethrough_method.mip
+                    ):
                         upsample_job = UpsampleJob(
                             src_layer=final_field,
                             chunk_xy=self.cf_method["chunk_xy"],
@@ -292,8 +290,7 @@ class AlignBlockJob(scheduling.Job):
                     )
 
                     if (
-                        min(self.cf_method.processor_mip)
-                        < self.seethrough_method.mip
+                        min(self.cf_method.processor_mip) < self.seethrough_method.mip
                         or max(self.cf_method.processor_mip)
                         > self.seethrough_method.mip
                     ):
@@ -374,17 +371,13 @@ class AlignBlockJob(scheduling.Job):
 @corgie_option("--render_pad", nargs=1, type=int, default=512)
 @corgie_option("--render_chunk_xy", nargs=1, type=int, default=1024)
 @corgie_optgroup("Compute Field Method Specification")
-@corgie_option(
-    "--processor_spec", nargs=1, type=str, required=True, multiple=True
-)
+@corgie_option("--processor_spec", nargs=1, type=str, required=True, multiple=True)
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option("--force_chunk_xy", is_flag=True)
 @corgie_option("--pad", nargs=1, type=int, default=256)
 @corgie_option("--crop", nargs=1, type=int, default=None)
-@corgie_option(
-    "--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True
-)
+@corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
 @corgie_option("--copy_start/--no_copy_start", default=True)
 @corgie_option("--use_starters/--no_starters", default=True)
 @corgie_option(
@@ -434,9 +427,7 @@ def align_block(
     if crop is None:
         crop = pad
     corgie_logger.debug("Setting up layers...")
-    src_stack = create_stack_from_spec(
-        src_layer_spec, name="src", readonly=True
-    )
+    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
 
     force_chunk_xy = chunk_xy if force_chunk_xy else None
@@ -463,7 +454,7 @@ def align_block(
         assert seethrough_spec_mip is not None
 
         seethrough_method = helpers.PartialSpecification(
-            f=CompareSectionsJob,
+            f=SeethroughCompareJob,
             mip=seethrough_spec_mip,
             processor_spec=seethrough_spec,
             chunk_xy=chunk_xy,
@@ -506,8 +497,7 @@ def align_block(
             use_starters=use_starters,
         )
         scheduler.register_job(
-            align_block_job_back,
-            job_name="Backward Align Block {}".format(bcube),
+            align_block_job_back, job_name="Backward Align Block {}".format(bcube),
         )
 
         align_block_job_forv = AlignBlockJob(
@@ -524,8 +514,7 @@ def align_block(
             use_starters=use_starters,
         )
         scheduler.register_job(
-            align_block_job_forv,
-            job_name="Forward Align Block {}".format(bcube),
+            align_block_job_forv, job_name="Forward Align Block {}".format(bcube),
         )
     else:
         align_block_job = AlignBlockJob(
@@ -543,9 +532,7 @@ def align_block(
         )
 
         # create scheduler and execute the job
-        scheduler.register_job(
-            align_block_job, job_name="Align Block {}".format(bcube)
-        )
+        scheduler.register_job(align_block_job, job_name="Align Block {}".format(bcube))
 
     scheduler.execute_until_completion()
     result_report = (
