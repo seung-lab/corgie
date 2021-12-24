@@ -402,6 +402,13 @@ def align(
             field_to_downsample = stitch_block.dst_stack[stitch_estimated_name]
             if stitch_corrected_field is not None:
                 field_to_downsample = stitch_corrected_field
+            # Hack for fafb
+            field_info = field_to_downsample.get_info()
+            for scale in field_info['scales']:
+                scale['chunk_sizes'][-1][-1] = 1
+                scale['encoding'] = 'raw'
+            field_to_downsample.cv.store_info(field_info)
+            field_to_downsample.cv.fetch_info()
             downsample_field_job = DownsampleJob(
                 src_layer=field_to_downsample,
                 mip_start=processor_mip[-1],

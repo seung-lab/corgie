@@ -64,6 +64,38 @@ class AlignBlockJob(scheduling.Job):
         self.softmin_temp = softmin_temp
         self.blur_sigma = blur_sigma
 
+        self.tgt_stack = deepcopy(self.dst_stack)
+        field_dir = f"field{self.suffix}"
+        self.final_field = self.dst_stack.create_sublayer(
+            field_dir, layer_type="field", overwrite=True
+        )
+        self.estimated_fields = {}
+
+        if self.backward:
+            z_step = -1
+        else:
+            z_step = 1
+
+        for k in range(1, self.vote_dist + 1):
+            offset = -k * z_step
+            f = self.dst_stack.create_sublayer(
+                f"{field_dir}/{offset}", layer_type="field", overwrite=True
+            )
+            self.estimated_fields[offset] = f
+
+        if self.seethrough_method is not None:
+            self.seethrough_mask_layer = self.dst_stack.create_sublayer(
+                f"seethrough_mask{self.suffix}",
+                layer_type="mask",
+                overwrite=True,
+            )
+            self.pixel_offset_layer = self.tgt_stack.create_unattached_sublayer(
+                f"pixel_offset{self.suffix}", layer_type="img", overwrite=True
+            )
+        else:
+            self.seethrough_mask_layer = None
+            self.pixel_offset_layer = None
+
         super().__init__()
 
     def task_generator(self):
@@ -76,42 +108,13 @@ class AlignBlockJob(scheduling.Job):
             z_start = self.bcube.z_range()[1]
             z_end = self.bcube.z_range()[0]
         seethrough_offset = -z_step
-
-        # Set up voting layers
         if (self.vote_dist > 1) and self.use_starters:
             starter_section_start = z_start - (self.vote_dist - 1) * z_step
         else:
             starter_section_start = z_start
         z_range = range(starter_section_start, z_end, z_step)
 
-        tgt_stack = deepcopy(self.dst_stack)
-        field_dir = f"field{self.suffix}"
-        final_field = self.dst_stack.create_sublayer(
-            field_dir, layer_type="field", overwrite=True
-        )
-        estimated_fields = {}
-        for k in range(1, self.vote_dist + 1):
-            offset = -k * z_step
-            f = self.dst_stack.create_sublayer(
-                f"{field_dir}/{offset}", layer_type="field", overwrite=True
-            )
-            estimated_fields[offset] = f
-
-        # Set up seethrough layers
-        if self.seethrough_method is not None:
-            seethrough_mask_layer = self.dst_stack.create_sublayer(
-                f"seethrough_mask{self.suffix}",
-                layer_type="mask",
-                overwrite=True,
-            )
-            pixel_offset_layer = tgt_stack.create_unattached_sublayer(
-                f"pixel_offset{self.suffix}", layer_type="img", overwrite=True
-            )
-        else:
-            seethrough_mask_layer = None
-            pixel_offset_layer = None
-
-        # Combine processor spec mips and seethrough spec mip
+    #         # Combine processor spec mips and seethrough spec mip
         processor_mips = set(self.cf_method.processor_mip)
         processor_and_seethrough_mips = processor_mips.copy()
         if self.seethrough_method is not None:
@@ -127,7 +130,7 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Copy section {z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=tgt_stack,
+                    dst_stack=self.tgt_stack,
                     bcube=bcube,
                     mips=processor_and_seethrough_mips,
                     blackout_masks=True,
@@ -145,7 +148,7 @@ class AlignBlockJob(scheduling.Job):
                     bcube=bcube,
                     tgt_z_offset=offset,
                     suffix=self.suffix,
-                    dst_layer=final_field,
+                    dst_layer=self.final_field,
                 )
                 yield from compute_field_job.task_generator
                 yield scheduling.wait_until_done
@@ -153,12 +156,12 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Render vote starter {z_start}<{z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=tgt_stack,
+                    dst_stack=self.tgt_stack,
                     bcube=bcube,
                     blackout_masks=True,
                     seethrough_mask_layer=None,  # No seethrough for starter sections
                     mips=self.cf_method.processor_mip,
-                    additional_fields=[final_field],
+                    additional_fields=[self.final_field],
                 )
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done
@@ -171,11 +174,11 @@ class AlignBlockJob(scheduling.Job):
                         corgie_logger.debug(f"Compute field {z+offset}<{z}")
                         compute_field_job = self.cf_method(
                             src_stack=self.src_stack,
-                            tgt_stack=tgt_stack,
+                            tgt_stack=self.tgt_stack,
                             bcube=bcube,
                             tgt_z_offset=offset,
                             suffix=self.suffix,
-                            dst_layer=estimated_fields[offset],
+                            dst_layer=self.estimated_fields[offset],
                         )
 
                         yield from compute_field_job.task_generator
@@ -188,11 +191,11 @@ class AlignBlockJob(scheduling.Job):
                     )
                     compute_field_job = self.cf_method(
                         src_stack=self.src_stack,
-                        tgt_stack=tgt_stack,
+                        tgt_stack=self.tgt_stack,
                         bcube=bcube,
                         tgt_z_offset=offset,
                         suffix=self.suffix,
-                        dst_layer=final_field,
+                        dst_layer=self.final_field,
                     )
 
                     yield from compute_field_job.task_generator
@@ -206,8 +209,8 @@ class AlignBlockJob(scheduling.Job):
                     chunk_z = self.cf_method["chunk_z"]
                     mip = self.cf_method["processor_mip"][-1]
                     vote_job = VoteOverFieldsJob(
-                        input_fields=estimated_fields,
-                        output_field=final_field,
+                        input_fields=self.estimated_fields,
+                        output_field=self.final_field,
                         chunk_xy=chunk_xy,
                         bcube=bcube,
                         mip=mip,
@@ -223,7 +226,7 @@ class AlignBlockJob(scheduling.Job):
                     # First, adjust the field to the appropriate MIP for seethrough rendering
                     if (self.cf_method["processor_mip"][-1] < self.seethrough_method.mip):
                         downsample_job = DownsampleJob(
-                            src_layer=final_field,
+                            src_layer=self.final_field,
                             chunk_xy=self.cf_method["chunk_xy"],
                             chunk_z=1,
                             mip_start=self.cf_method["processor_mip"][-1],
@@ -234,7 +237,7 @@ class AlignBlockJob(scheduling.Job):
                         yield scheduling.wait_until_done
                     elif (self.cf_method["processor_mip"][-1] > self.seethrough_method.mip):
                         upsample_job = UpsampleJob(
-                            src_layer=final_field,
+                            src_layer=self.final_field,
                             chunk_xy=self.cf_method["chunk_xy"],
                             chunk_z=1,
                             mip_start=self.cf_method["processor_mip"][-1],
@@ -248,11 +251,11 @@ class AlignBlockJob(scheduling.Job):
                     # This could mean a reduntant render step, but that's fine
                     render_job = self.render_method(
                         src_stack=self.src_stack,
-                        dst_stack=tgt_stack,
+                        dst_stack=self.tgt_stack,
                         bcube=bcube,
                         blackout_masks=True,
                         preserve_zeros=True,
-                        additional_fields=[final_field],
+                        additional_fields=[self.final_field],
                         mips=self.seethrough_method.mip,
                     )
 
@@ -262,12 +265,12 @@ class AlignBlockJob(scheduling.Job):
                     # Now, we'll apply misalignment detection to produce a mask
                     # this mask will be used in the final render step
                     seethrough_mask_job = self.seethrough_method(
-                        src_stack=tgt_stack,  # we're looking for misalignments in the final stack
+                        src_stack=self.tgt_stack,  # we're looking for misalignments in the final stack
                         bcube=bcube,
                         tgt_z_offset=-z_step,
                         suffix=self.suffix,
-                        dst_layer=seethrough_mask_layer,
-                        pixel_offset_layer=pixel_offset_layer,
+                        dst_layer=self.seethrough_mask_layer,
+                        pixel_offset_layer=self.pixel_offset_layer,
                     )
 
                     yield from seethrough_mask_job.task_generator
@@ -275,7 +278,7 @@ class AlignBlockJob(scheduling.Job):
 
                     # We'll downsample the mask to be available at all mip levels
                     downsample_job = DownsampleJob(
-                        src_layer=seethrough_mask_layer,
+                        src_layer=self.seethrough_mask_layer,
                         chunk_xy=self.seethrough_method.chunk_xy,
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
@@ -283,7 +286,7 @@ class AlignBlockJob(scheduling.Job):
                         bcube=bcube,
                     )
                     upsample_job = UpsampleJob(
-                        src_layer=seethrough_mask_layer,
+                        src_layer=self.seethrough_mask_layer,
                         chunk_xy=self.seethrough_method.chunk_xy,
                         chunk_z=1,
                         mip_start=self.seethrough_method.mip,
@@ -304,13 +307,13 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Render {z}")
                 render_job = self.render_method(
                     src_stack=self.src_stack,
-                    dst_stack=tgt_stack,
+                    dst_stack=self.tgt_stack,
                     bcube=bcube,
                     blackout_masks=True,
-                    seethrough_mask_layer=seethrough_mask_layer,
+                    seethrough_mask_layer=self.seethrough_mask_layer,
                     seethrough_offset=seethrough_offset,
                     mips=min(self.cf_method.processor_mip),
-                    additional_fields=[final_field],
+                    additional_fields=[self.final_field],
                 )
                 yield from render_job.task_generator
                 yield scheduling.wait_until_done
@@ -319,7 +322,7 @@ class AlignBlockJob(scheduling.Job):
                 if min(self.cf_method.processor_mip) != max(
                     self.cf_method.processor_mip
                 ):
-                    dst_layer = tgt_stack.get_layers_of_type("img")[0]
+                    dst_layer = self.tgt_stack.get_layers_of_type("img")[0]
                     downsample_job = DownsampleJob(
                         src_layer=dst_layer,
                         chunk_xy=self.cf_method.chunk_xy,

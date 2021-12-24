@@ -17,13 +17,19 @@ def jsonize_key(*kargs, **kwargs):
     result += json.dumps(kwargs, sort_keys=True)
     return result
 
+
+def cv_is_cached(*kargs, **kwargs):
+    key = jsonize_key(*kargs, **kwargs)
+    return key in cv_cache
+
+cv_cache = cachetools.LRUCache(maxsize=500)
 class CachedCloudVolume(CloudVolume):
     @cachetools.cached(
-        cachetools.LRUCache(maxsize=500),
+        cv_cache,
         key=jsonize_key
     )
-    def __new__(self, *kargs, **kwargs):
-        return super().__new__(self, *kargs, **kwargs)
+    def __new__(self, *args, **kwargs):
+        return super().__new__(self, *args, **kwargs)
 
 
 def deserialize_miplessCV_old(s, cache={}):
@@ -79,6 +85,7 @@ class MiplessCloudVolume():
         self.cv_params.setdefault('cdn_cache', False)
         self.cv_params.setdefault('fill_missing', True)
         self.cv_params.setdefault('agglomerate', True)
+        self.cv_params.setdefault('agglomerate', True)
 
         # for k, v in six.iteritems(kwargs):
         #     self.cv_params[k] = v
@@ -88,12 +95,21 @@ class MiplessCloudVolume():
         self.obj = obj
         self.cvs = {}
 
+
+        self.info = None
+        self.fetch_info()
+
         if 'info' in self.cv_params and overwrite:
-            self.store_info()
+            self.store_info(self.info)
 
     # def exists(self):
     #       s = Storage(self.path)
     #       return s.exists('info')
+
+    def fetch_info(self):
+        print ("Fetching info")
+        tmp_cv = self.obj(self.path, **self.cv_params)
+        self.info = tmp_cv.info
 
     def serialize(self):
             contents = {
@@ -115,8 +131,7 @@ class MiplessCloudVolume():
                 return mcv
 
     def get_info(self):
-        tmp_cv = self.obj(self.path, **self.cv_params)
-        return tmp_cv.info
+        return self.info
 
     def store_info(self, info=None):
         if not self.allow_info_writes:

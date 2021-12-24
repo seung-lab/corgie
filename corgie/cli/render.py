@@ -297,7 +297,6 @@ def render(
         suffix=suffix,
         overwrite=True,
     )
-
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
 
     render_job = RenderJob(
