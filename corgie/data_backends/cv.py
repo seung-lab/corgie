@@ -224,8 +224,8 @@ class CVLayerBase(BaseLayerBackend):
         if chunk_z > aligned_bcube.z_size():
             z_adj = chunk_z - aligned_bcube.z_size()
         else:
-            rem = aligned_bcube.z_size() % chunk_z
-            if rem == 0:
+            z_rem = aligned_bcube.z_size() % chunk_z
+            if z_rem == 0:
                 z_adj = 0
             else:
                 z_adj = chunk_z - z_rem
@@ -250,6 +250,10 @@ class CVLayerBase(BaseLayerBackend):
             bcube, chunk_xy, chunk_z, mip, **kwargs
         )
         return chunks
+
+    def flush(self, mip):
+        corgie_logger.debug(f"FLUSH {str(self)} at {mip}")
+        self.cv[mip].cache.flush()
 
 
 @cv_backend.register_layer_type_backend("img")
