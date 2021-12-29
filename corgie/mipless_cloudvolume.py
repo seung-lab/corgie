@@ -82,6 +82,7 @@ class MiplessCloudVolume():
         self.cv_params.setdefault('non_aligned_writes', False)
         self.cv_params.setdefault('cdn_cache', False)
         self.cv_params.setdefault('fill_missing', True)
+        self.cv_params.setdefault('delete_black_uploads', True)
         self.cv_params.setdefault('agglomerate', True)
 
         # for k, v in six.iteritems(kwargs):
