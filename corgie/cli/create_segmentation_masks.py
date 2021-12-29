@@ -332,26 +332,26 @@ def create_segmentation_masks(
                     overwrite=True,
                     layer_args={"dtype": "float32"},
                 )
-                compare_job = CompareSectionsJob(
-                    src_stack=src_stack,
-                    tgt_stack=src_stack,
-                    dst_layer=dst_layer,
-                    chunk_xy=chunk_xy,
-                    processor_spec=processor_spec,
-                    pad=pad,
-                    bcube=bcube,
-                    tgt_z_offset=tgt_z_offset,
-                    suffix=suffix,
-                    mip=processor_mip,
-                    dst_mip=dst_mip,
-                )
-                scheduler.register_job(
-                    compare_job,
-                    job_name="Compare Sections Job {}, tgt z offset {}".format(
-                        bcube, tgt_z_offset
-                    ),
-                )
-        scheduler.execute_until_completion()
+                # compare_job = CompareSectionsJob(
+                #     src_stack=src_stack,
+                #     tgt_stack=src_stack,
+                #     dst_layer=dst_layer,
+                #     chunk_xy=chunk_xy,
+                #     processor_spec=processor_spec,
+                #     pad=pad,
+                #     bcube=bcube,
+                #     tgt_z_offset=tgt_z_offset,
+                #     suffix=suffix,
+                #     mip=processor_mip,
+                #     dst_mip=dst_mip,
+                # )
+                # scheduler.register_job(
+                #     compare_job,
+                #     job_name="Compare Sections Job {}, tgt z offset {}".format(
+                #         bcube, tgt_z_offset
+                #     ),
+                # )
+        # scheduler.execute_until_completion()
         result_report = f"Similarity results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
         corgie_logger.info(result_report)
 
@@ -378,7 +378,9 @@ def create_segmentation_masks(
         slip_layer = dst_stack.create_sublayer(
             name="slip", layer_type="mask", overwrite=True
         )
-        slip_bcube = bcube.reset_coords(zs=bcube.z[0] + 1, ze=z[1] - 1, in_place=False)
+        slip_bcube = bcube.reset_coords(
+            zs=bcube.z[0] + 1, ze=bcube.z[1] - 1, in_place=False
+        )
         slip_misalignments_job = DetectSlipMisalignmentsJob(
             src_stack=src_stack,
             dst_layer=slip_layer,
@@ -396,7 +398,9 @@ def create_segmentation_masks(
         step_layer = dst_stack.create_sublayer(
             name="step", layer_type="mask", overwrite=True
         )
-        step_bcube = bcube.reset_coords(zs=bcube.z[0] + 2, ze=z[1] - 2, in_place=False)
+        step_bcube = bcube.reset_coords(
+            zs=bcube.z[0] + 2, ze=bcube.z[1] - 2, in_place=False
+        )
         step_misalignments_job = DetectStepMisalignmentsJob(
             src_stack=src_stack,
             dst_layer=step_layer,
