@@ -332,26 +332,26 @@ def create_segmentation_masks(
                     overwrite=True,
                     layer_args={"dtype": "float32"},
                 )
-                # compare_job = CompareSectionsJob(
-                #     src_stack=src_stack,
-                #     tgt_stack=src_stack,
-                #     dst_layer=dst_layer,
-                #     chunk_xy=chunk_xy,
-                #     processor_spec=processor_spec,
-                #     pad=pad,
-                #     bcube=bcube,
-                #     tgt_z_offset=tgt_z_offset,
-                #     suffix=suffix,
-                #     mip=processor_mip,
-                #     dst_mip=dst_mip,
-                # )
-                # scheduler.register_job(
-                #     compare_job,
-                #     job_name="Compare Sections Job {}, tgt z offset {}".format(
-                #         bcube, tgt_z_offset
-                #     ),
-                # )
-        # scheduler.execute_until_completion()
+                compare_job = CompareSectionsJob(
+                    src_stack=src_stack,
+                    tgt_stack=src_stack,
+                    dst_layer=dst_layer,
+                    chunk_xy=chunk_xy,
+                    processor_spec=processor_spec,
+                    pad=pad,
+                    bcube=bcube,
+                    tgt_z_offset=tgt_z_offset,
+                    suffix=suffix,
+                    mip=processor_mip,
+                    dst_mip=dst_mip,
+                )
+                scheduler.register_job(
+                    compare_job,
+                    job_name="Compare Sections Job {}, tgt z offset {}".format(
+                        bcube, tgt_z_offset
+                    ),
+                )
+        scheduler.execute_until_completion()
         result_report = f"Similarity results in {[str(l) for l in dst_stack.get_layers_of_type('img')]}"
         corgie_logger.info(result_report)
 
