@@ -242,7 +242,7 @@ def compare_sections(
         tgt_stack=tgt_stack,
         dst_layer=dst_layer,
         chunk_xy=chunk_xy,
-        processor_spec=[processor_spec],
+        processor_spec=processor_spec,
         pad=pad,
         bcube=bcube,
         tgt_z_offset=tgt_z_offset,
