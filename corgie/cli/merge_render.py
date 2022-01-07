@@ -126,7 +126,7 @@ class MergeRenderImageTask(scheduling.Task):
             render_pad = int((field.max_vector() - field.min_vector()).max().ceil().tensor().item())
             snap_factor = 2 ** (max(self.mip, mask_layer.data_mip) - self.mip)
             render_pad = math.ceil(render_pad / snap_factor) * snap_factor
-            render_pad = min(render_pad, 2048)  # Safety
+            render_pad = min(render_pad, 4096)  # Safety
 
             render_bcube = bcube.uncrop(render_pad, self.mip)
             corgie_logger.debug(f"render_pad: {render_pad}")
@@ -230,7 +230,7 @@ class MergeRenderMaskTask(MergeRenderImageTask):
             mask = (mask > 0.4).bool()
             cropped_mask = helpers.crop(mask, self.pad)
 
-            relabel_id = torch.as_tensor(specs.get("relabel_id", k), dtype=torch.uint8)
+            relabel_id = torch.as_tensor(specs.get("relabel_id", k + 1), dtype=torch.uint8)
             if k == 0:
                 dst_img = cropped_mask * relabel_id
                 dst_img[~cropped_mask] = 0
