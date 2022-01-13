@@ -349,12 +349,22 @@ class PyramidDistanceFieldSet(FieldSet):
             decay_dist (float): distance beyond which a field does not influence a neighbor
             blur_rate (float): rate of blurring increase with section distance. Can be roughly 
                 considered the change in size of std of gaussian kernel per single section (we
-                currently create the MIP hierarchy with a box filter). For example, if the std 
+                currently create the MIP hierarchy with a box filter). For example, if the std
                 increases by 1 px every 10 sections, then blur_rate = 0.1.
         """
         super().__init__(layers)
         self.decay_dist = decay_dist
         self.blur_rate = blur_rate
+
+    @classmethod
+    def get_max_mip(cls, mip, dist, blur_rate):
+        """Get the maximum mip required for a given distance, blur_rate, and starting_mip"""
+        return mip + math.ceil(cls.get_effective_mip(dist=dist, blur_rate=blur_rate))
+
+    @classmethod
+    def get_effective_mip(cls, dist, blur_rate):
+        """Get the effective mip required for a given distance"""
+        return math.log(dist * blur_rate + 1, 2)
 
     def get_field(self, layer, bcube, mip, dist, **kwargs):
         """Get field, adjusted by distance
@@ -369,7 +379,9 @@ class PyramidDistanceFieldSet(FieldSet):
             TorchField adjusted (blurred & attenuated) by distance
         """
         c = min(max(1.0 - (dist / self.decay_dist), 0.0), 1.0)
-        sigma_mip = math.log(dist * self.blur_rate + 1, 2)
+        sigma_mip = PyramidDistanceFieldSet.get_effective_mip(
+            dist=dist, blur_rate=self.blur_rate
+        )
         lower_mip = math.floor(sigma_mip)
         upper_mip = math.ceil(sigma_mip)
         corgie_logger.debug(
