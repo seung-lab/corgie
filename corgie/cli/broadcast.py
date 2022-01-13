@@ -130,7 +130,7 @@ class BroadcastTask(scheduling.Task):
         """Compose set of stitching_fields, adjusted by distance, with block_field.
 
         Args:
-            block_field (Layer): most recent field, that last to be warped
+            block_field (Layer): most recent field, that is last to be warped
             stitching_fields ([Layers]): collection of fields at stitching interfaces,
                 which are assumed to alternate
             output_field (Layer)
@@ -165,14 +165,27 @@ class BroadcastTask(scheduling.Task):
             input_fields = fmul * input_fields + input_fields[:frem]
             input_fields = input_fields[::-1]
         input_fields += [self.block_field]
-        z_list = self.z_list + [self.bcube.z_range()[0]]
-        corgie_logger.debug(f"input_fields: {input_fields}")
-        corgie_logger.debug(f"z_list: {z_list}")
-        pbcube = self.bcube.uncrop(self.pad, self.mip)
-        corgie_logger.debug(f"pbcube: {pbcube}")
-        fields = PyramidDistanceFieldSet(
-            decay_dist=self.decay_dist, blur_rate=self.blur_rate, layers=input_fields
+        for z in range(*self.bcube.z_range()):
+            bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
+            z_list = self.z_list + [bcube.z_range()[0]]
+            corgie_logger.debug(f"input_fields: {input_fields}")
+            corgie_logger.debug(f"z_list: {z_list}")
+            pbcube = bcube.uncrop(self.pad, self.mip)
+            corgie_logger.debug(f"pbcube: {pbcube}")
+            fields = PyramidDistanceFieldSet(
+                decay_dist=self.decay_dist,
+                blur_rate=self.blur_rate,
+                layers=input_fields,
+            )
+            field = fields.read(bcube=pbcube, z_list=z_list, mip=self.mip)
+            cropped_field = helpers.crop(field, self.pad)
+            self.output_field.write(cropped_field, bcube=bcube, mip=self.mip)
+
+        # This task can be used with caching
+        max_mip = PyramidDistanceFieldSet.get_max_mip(
+            mip=self.mip, dist=self.decay_dist, blur_rate=self.blur_rate
         )
-        field = fields.read(bcube=pbcube, z_list=z_list, mip=self.mip)
-        cropped_field = helpers.crop(field, self.pad)
-        self.output_field.write(cropped_field, bcube=self.bcube, mip=self.mip)
+        mips = range(self.mip, max_mip)
+        for layer in input_fields:
+            for mip in mips:
+                layer.flush(mip)
