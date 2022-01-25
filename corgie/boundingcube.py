@@ -37,6 +37,24 @@ def get_bcube_from_vertices(vertices, resolution, mip, cant_be_empty=True):
 
     return bcube
 
+def get_bcube_from_point(point, size, mip, cant_be_empty=True):
+    if isinstance(size, int):
+        size = [size, size, 0.5]
+    xs = point[0] - floor(size[0] / 2)
+    xe = point[0] + ceil(size[0] / 2)
+    ys = point[1] - floor(size[1] / 2)
+    ye = point[1] + ceil(size[1] / 2)
+    zs = point[2] - floor(size[2] / 2)
+    ze = point[2] + ceil(size[2] / 2)
+    bcube = BoundingCube(xs, xe, ys, ye, zs, ze, mip)
+    if cant_be_empty and bcube.area() * bcube.z_size() == 0:
+        raise Exception(
+            "Attempted creation of an empty bounding "
+            "when 'cant_be_empty' flag is set to True"
+        )
+    return bcube
+        
+
 
 class BoundingCube:
     def __init__(self, xs, xe, ys, ye, zs, ze, mip):
