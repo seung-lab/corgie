@@ -1,6 +1,7 @@
 import click
 
 from corgie import exceptions, stack, helpers, scheduling, argparsers
+import json
 
 from corgie.log import logger as corgie_logger
 from corgie.boundingcube import get_bcube_from_coords
@@ -330,14 +331,22 @@ def create_segmentation_masks(
                     name=tgt_z_offset,
                     layer_type="img",
                     overwrite=True,
-                    layer_args={"dtype": "float32"},
+                    layer_args={"dtype": "uint8"},
                 )
+
+                proc_spec = json.loads(processor_spec)
+                if isinstance(proc_spec, dict):
+                    assert str(tgt_z_offset) in proc_spec
+                    proc_spec = json.dumps(proc_spec[str(tgt_z_offset)])
+                else:
+                    proc_spec = processor_spec
+
                 compare_job = CompareSectionsJob(
                     src_stack=src_stack,
                     tgt_stack=src_stack,
                     dst_layer=dst_layer,
                     chunk_xy=chunk_xy,
-                    processor_spec=processor_spec,
+                    processor_spec=proc_spec,
                     pad=pad,
                     bcube=bcube,
                     tgt_z_offset=tgt_z_offset,
