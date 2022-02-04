@@ -4,22 +4,28 @@ from corgie.log import logger as corgie_logger
 from corgie import scheduling, argparsers, helpers, stack
 
 
-def compute_softmin_temp(dist, weight, size):
+def compute_softmin_temp(dist: float, weight: float, size: int):
     """Compute softmin temp given binary assumptions
 
     Assumes that voting subsets are either correct or incorrect.
 
     Args:
-        dist (float): distance between the average differences of
+        dist: distance between the average differences of
             a correct and incorrect subset.
-        weight (float): desired weight to be assigned for correct/incorrect
+        weight: desired weight to be assigned for correct/incorrect
             distance.
-        size (int): size of a subset in voting
+        size: the number of subsets involved in voting. If the 
+            number of vectors involved in voting is n, and k is the smallest
+            number that represents a majority of n, then size should be 
+            (n choose k). 
 
     Returns:
         float for softmin temperature that will achieve this weight
     """
-    return -dist / (log(1 - weight) - log(weight * size))
+    assert (weight > 0) and (weight < 1)
+    assert size > 0
+    assert dist >= 0
+    return -dist / (log(1 - weight) - log(weight * size) + 1e-5)
 
 
 class VoteOverFieldsJob(scheduling.Job):
