@@ -179,7 +179,7 @@ class CompareSectionsTask(scheduling.Task):
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
 @corgie_option("--coord_mip", nargs=1, type=int, default=0)
-@corgie_option("--tgt_z_offset", nargs=1, type=str, default=-1)
+@corgie_option("--tgt_z_offset", nargs=1, type=int, default=-1)
 @click.option("--suffix", nargs=1, type=str, default=None)
 @click.pass_context
 def compare_sections(
