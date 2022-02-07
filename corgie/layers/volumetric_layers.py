@@ -372,3 +372,41 @@ class FixedFieldLayer(FieldLayer):
     #                   bcube=indexed_bcube,
     #                   mip=mip,
     #                   **kwargs)
+
+
+@register_layer_type("float_tensor")
+class FloatTensorLayer(VolumetricLayer):
+    """Generic 4D float tensors"""
+    def __init__(self, *args, num_channels=1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.num_channels = num_channels
+
+    def get_downsampler(self):
+        def downsampler(data_tens):
+            return torch.nn.functional.interpolate(
+                data_tens.float(),
+                mode="bilinear",
+                scale_factor=1 / 2,
+                align_corners=False,
+                **get_extra_interpolate_parameters()
+            )
+
+        return downsampler
+
+    def get_upsampler(self):
+        def upsampler(data_tens):
+            return torch.nn.functional.interpolate(
+                data_tens.float(),
+                mode="bilinear",
+                scale_factor=2.0,
+                align_corners=False,
+                **get_extra_interpolate_parameters()
+            )
+
+        return upsampler
+
+    def get_num_channels(self, *args, **kwargs):
+        return self.num_channels
+
+    def get_default_data_type(self):
+        return "float32"
