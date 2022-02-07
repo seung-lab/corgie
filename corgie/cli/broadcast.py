@@ -167,6 +167,8 @@ class BroadcastTask(scheduling.Task):
             input_fields = fmul * input_fields + input_fields[:frem]
             input_fields = input_fields[::-1]
         input_fields += [self.block_field]
+        for field in input_fields:
+            field.cv.set_param(key="cache", value=True)
         for z in range(*self.bcube.z_range()):
             bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             z_list = self.z_list + [bcube.z_range()[0]]
@@ -191,3 +193,6 @@ class BroadcastTask(scheduling.Task):
         for layer in input_fields:
             for mip in mips:
                 layer.flush(mip)
+
+        for field in input_fields:
+            field.cv.set_param(key="cache", value=False)
