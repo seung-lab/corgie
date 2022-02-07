@@ -28,6 +28,7 @@ setuptools.setup(
       'click-option-group',
       'click>=7,<8',
       'procspec',
+      'objectscriber',
       'idna>=2.5',
       'google-auth>=1.11.0',
       'cloud-volume',

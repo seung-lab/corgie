@@ -10,11 +10,12 @@ import math
 
 import six
 
-from corgie import exceptions, helpers
+from corgie import exceptions, helpers, scheduling
 from corgie.layers import str_to_layer_type
 from corgie.log import logger as corgie_logger
 
 
+@scheduling.serializable
 class StackBase:
     def __init__(self, name=None):
         self.name = name
@@ -78,6 +79,23 @@ class StackBase:
             layer_types.add(v.get_layer_type())
 
         return list(layer_types)
+
+    def serialize(self, serializer):
+        spec = {}
+        spec['name'] = self.name
+        #spec['folder'] = self.folder
+        spec['layers'] = serializer.serialize(self.layers)
+        spec['reference_layer'] = serializer.serialize(self.reference_layer)
+        return spec
+
+
+    @classmethod
+    def deserialize(cls, spec, serializer):
+        obj = cls()
+        obj.name = spec['name']
+        obj.layers = serializer.deserialize(spec['layers'])
+        obj.reference_layer = serializer.deserialize(spec['reference_layer'])
+        return obj
 
 
 class Stack(StackBase):
@@ -195,7 +213,6 @@ class Stack(StackBase):
             translation.y += src_field_trans.y
 
         # if translation.x != 0 or translation.y != 0:
-        # import pdb; pdb.set_trace()
         final_bcube = copy.deepcopy(bcube)
         final_bcube = final_bcube.translate(
             x_offset=translation.y, y_offset=translation.x, mip=mip
@@ -205,9 +222,6 @@ class Stack(StackBase):
             global_name = f"{name_prefix}{l.name}"
             data_dict[global_name] = l.read(bcube=final_bcube, mip=mip)
         return translation, data_dict
-
-    def z_range(self):
-        return self.bcube.z_range()
 
     def cutout(self):
         raise NotImplementedError

@@ -3,6 +3,7 @@ import copy
 from math import floor, ceil
 import numpy as np
 
+from corgie import scheduling
 from corgie.helpers import crop
 
 
@@ -37,7 +38,7 @@ def get_bcube_from_vertices(vertices, resolution, mip, cant_be_empty=True):
 
     return bcube
 
-
+@scheduling.serializable
 class BoundingCube:
     def __init__(self, xs, xe, ys, ye, zs, ze, mip):
         self.m0_x = (None, None)

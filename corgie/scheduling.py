@@ -1,4 +1,5 @@
 import mazepa
+import objectscriber as scriber
 
 wait_until_done = mazepa.Barrier
 Task = mazepa.Task
@@ -25,3 +26,5 @@ class Scheduler(mazepa.Scheduler):
 def create_scheduler(*kargs, **kwargs):
     return Scheduler(*kargs, **kwargs)
 
+def serializable(cls):
+    return scriber.register_class(cls)

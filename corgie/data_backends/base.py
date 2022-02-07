@@ -1,6 +1,6 @@
 import torch
 
-from corgie import exceptions
+from corgie import exceptions, scheduling
 
 from corgie.log import logger as corgie_logger
 from corgie.layers import get_layer_types, str_to_layer_type
@@ -27,6 +27,7 @@ def register_backend(name):
     return register_backend_fn
 
 
+@scheduling.serializable
 class DataBackendBase:
     default_device = None
 
