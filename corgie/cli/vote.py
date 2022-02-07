@@ -1,7 +1,15 @@
+import click
 import torch
 from math import log
 from corgie.log import logger as corgie_logger
-from corgie import scheduling, argparsers, helpers, stack
+from corgie.boundingcube import get_bcube_from_coords
+from corgie import scheduling, stack
+from corgie.argparsers import (
+    LAYER_HELP_STR,
+    corgie_optgroup,
+    corgie_option,
+    create_stack_from_spec,
+)
 
 
 def compute_softmin_temp(dist: float, weight: float, size: int):
@@ -123,6 +131,7 @@ class VoteOverZJob(scheduling.Job):
         mip,
         softmin_temp=None,
         blur_sigma=1.0,
+        weights_layer=None,
     ):
         self.input_field = input_field
         self.output_field = output_field
@@ -132,6 +141,7 @@ class VoteOverZJob(scheduling.Job):
         self.mip = mip
         self.softmin_temp = softmin_temp
         self.blur_sigma = blur_sigma
+        self.weights_layer = weights_layer
         super().__init__()
 
     def task_generator(self):
@@ -148,6 +158,7 @@ class VoteOverZJob(scheduling.Job):
                 z_list=self.z_list,
                 softmin_temp=self.softmin_temp,
                 blur_sigma=self.blur_sigma,
+                weights_layer=self.weights_layer,
             )
             for chunk in chunks
         ]
@@ -168,6 +179,7 @@ class VoteOverZTask(scheduling.Task):
         z_list,
         softmin_temp,
         blur_sigma=1.0,
+        weights_layer=None,
     ):
         """Find median vector for set of locations in a single field
 
@@ -181,6 +193,7 @@ class VoteOverZTask(scheduling.Task):
             mip (int)
             bcube (BoundingCube)
             z_list (range, [int])
+            weight_layer (Layer): if set, where intermediary weights will be written
         """
         super().__init__()
         self.input_field = input_field
@@ -192,6 +205,7 @@ class VoteOverZTask(scheduling.Task):
             softmin_temp = compute_softmin_temp(dist=1, weight=0.99, size=len(z_list))
         self.softmin_temp = softmin_temp
         self.blur_sigma = blur_sigma
+        self.weights_layer = weights_layer
 
     def execute(self):
         fields = []
@@ -203,3 +217,116 @@ class VoteOverZTask(scheduling.Task):
             softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
         )
         self.output_field.write(data_tens=voted_field, bcube=self.bcube, mip=self.mip)
+
+
+class VoteJob(scheduling.Job):
+    def __init__(
+        self,
+        input_fields,
+        output_field,
+        chunk_xy,
+        bcube,
+        z_offsets,
+        mip,
+        softmin_temp=None,
+        blur_sigma=1.0,
+        weights_layer=None,
+    ):
+        self.input_fields = input_fields
+        self.output_field = output_field
+        self.chunk_xy = chunk_xy
+        self.bcube = bcube
+        self.z_offsets = z_offsets
+        self.mip = mip
+        self.softmin_temp = softmin_temp
+        self.blur_sigma = blur_sigma
+        self.weights_layer = weights_layer
+        super().__init__()
+
+    def task_generator(self):
+        chunks = self.output_field.break_bcube_into_chunks(
+            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip
+        )
+
+        tasks = [
+            VoteTask(
+                input_fields=self.input_fields,
+                output_field=self.output_field,
+                mip=self.mip,
+                bcube=chunk,
+                z_offsets=self.z_offsets,
+                softmin_temp=self.softmin_temp,
+                blur_sigma=self.blur_sigma,
+                weights_layer=self.weights_layer,
+            )
+            for chunk in chunks
+        ]
+
+        corgie_logger.debug(
+            "Yielding VoteTask for bcube: {}, MIP: {}".format(self.bcube, self.mip)
+        )
+        yield tasks
+
+
+class VoteTask(scheduling.Task):
+    def __init__(
+        self,
+        input_fields,
+        output_field,
+        mip,
+        bcube,
+        z_offsets,
+        softmin_temp,
+        blur_sigma=1.0,
+        weights_layer=None,
+    ):
+        """Find median vector for set of locations in a set of fields
+
+        Notes:
+            Does not ignore identity fields.
+            Padding & cropping is not necessary.
+
+        Args:
+            input_fields ([Layer]): match length of z_offsets
+            output_field (Layer)
+            mip (int)
+            bcube (BoundingCube)
+            z_offsets (range, [int]): offsets from z where fields should be accessed
+            weight_layer (Layer): if set, where intermediary weights will be written
+        """
+        super().__init__()
+        self.input_fields = input_fields
+        self.output_field = output_field
+        self.mip = mip
+        self.bcube = bcube
+        self.z_offsets = z_offsets
+        # match length of input_fields & z_offsets
+        if len(self.input_fields) < len(self.z_offsets):
+            self.input_fields = [self.input_fields[0]] * len(self.z_offsets)
+        elif len(self.z_offsets) < len(self.input_fields):
+            self.z_offsets = [self.z_offsets[0]] * len(self.input_fields)
+        if softmin_temp is None:
+            softmin_temp = compute_softmin_temp(
+                dist=1, weight=0.99, size=len(self.z_offsets)
+            )
+        self.softmin_temp = softmin_temp
+        self.blur_sigma = blur_sigma
+        self.weights_layer = weights_layer
+
+    def execute(self):
+        fields = []
+        for z_offset, field in zip(self.z_offsets, self.input_fields):
+            z = self.bcube.z_range()[0]
+            bcube = self.bcube.reset_coords(
+                zs=z + z_offset, ze=z + z_offset + 1, in_place=False
+            )
+            fields.append(field.read(bcube, mip=self.mip))
+        fields = torch.cat([f for f in fields]).field()
+        weights = fields.get_vote_weights(
+            softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
+        )
+        if self.weights_layer:
+            self.weights_layer.write(data_tens=weights, bcube=self.bcube, mip=self.mip)
+        voted_field = (fields * weights.unsqueeze(-3)).sum(dim=0, keepdim=True)
+        self.output_field.write(data_tens=voted_field, bcube=self.bcube, mip=self.mip)
+
