@@ -330,3 +330,106 @@ class VoteTask(scheduling.Task):
         voted_field = (fields * weights.unsqueeze(-3)).sum(dim=0, keepdim=True)
         self.output_field.write(data_tens=voted_field, bcube=self.bcube, mip=self.mip)
 
+
+@click.command()
+# Layers
+@corgie_optgroup("Layer Parameters")
+@corgie_option(
+    "--src_layer_spec",
+    "-s",
+    nargs=1,
+    type=str,
+    required=True,
+    multiple=True,
+    help="Source layer spec. Use multiple times to include all masks, fields, images. "
+    + LAYER_HELP_STR,
+)
+@corgie_option(
+    "--dst_folder",
+    nargs=1,
+    type=str,
+    required=True,
+    help="Folder where aligned stack will go",
+)
+@corgie_option("--suffix", nargs=1, type=str, default=None)
+@corgie_optgroup("Voting Specification")
+@corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
+@corgie_option("--z_offsets", multiple=True, type=int, default=0)
+@corgie_option("--softmin_temp", nargs=1, type=float, default=None)
+@corgie_option("--blur_sigma", nargs=1, type=float, default=1.0)
+@corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
+@corgie_option("--mip", nargs=1, type=int, default=0)
+@corgie_optgroup("Data Region Specification")
+@corgie_option("--start_coord", nargs=1, type=str, required=True)
+@corgie_option("--end_coord", nargs=1, type=str, required=True)
+@corgie_option("--coord_mip", nargs=1, type=int, default=0)
+@click.pass_context
+def vote(
+    ctx,
+    src_layer_spec,
+    dst_folder,
+    chunk_xy,
+    mip,
+    z_offsets,
+    force_chunk_xy,
+    softmin_temp,
+    blur_sigma,
+    start_coord,
+    end_coord,
+    coord_mip,
+    suffix,
+):
+
+    scheduler = ctx.obj["scheduler"]
+
+    if suffix is None:
+        suffix = "_voted"
+    else:
+        suffix = f"_{suffix}"
+
+    bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
+    corgie_logger.debug("Setting up layers...")
+    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
+
+    if force_chunk_xy is None:
+        force_chunk_xy = chunk_xy
+
+    dst_stack = stack.create_stack_from_reference(
+        reference_stack=src_stack,
+        folder=dst_folder,
+        name="dst",
+        types=["field", "float_tensor"],
+        readonly=False,
+        suffix=suffix,
+        force_chunk_xy=force_chunk_xy,
+        overwrite=True,
+    )
+
+    vote_weights = dst_stack.create_sublayer(
+        name="vote_weights",
+        layer_type="float_tensor",
+        overwrite=True,
+        num_channels=max(len(src_stack), len(z_offsets)),
+    )
+    voted_field = dst_stack.create_sublayer(
+        name="voted_field", layer_type="field", overwrite=True
+    )
+
+    vote_stitch_job = VoteJob(
+        input_fields=src_stack.get_layers(),
+        output_field=voted_field,
+        chunk_xy=chunk_xy,
+        bcube=bcube,
+        z_offsets=z_offsets,
+        mip=mip,
+        softmin_temp=softmin_temp,
+        blur_sigma=blur_sigma,
+        weights_layer=vote_weights,
+    )
+    scheduler.register_job(
+        vote_stitch_job, job_name=f"Vote {bcube}",
+    )
+
+    scheduler.execute_until_completion()
+    corgie_logger.debug("Done!")
+
