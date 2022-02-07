@@ -305,3 +305,9 @@ class CVSectionValueLayer(CVLayerBase, layers.SectionValueLayer):
 class CVFixedFieldLayer(CVFieldLayer, layers.FixedFieldLayer):
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
+
+
+@cv_backend.register_layer_type_backend("float_tensor")
+class CVFloatTensorLayer(CVLayerBase, layers.FloatTensorLayer):
+    def __init__(self, *kargs, **kwargs):
+        super().__init__(*kargs, **kwargs)
