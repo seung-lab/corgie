@@ -109,6 +109,7 @@ class MiplessCloudVolume:
         self.cv_params.setdefault("fill_missing", True)
         self.cv_params.setdefault("delete_black_uploads", True)
         self.cv_params.setdefault("agglomerate", True)
+        self.cv_params.setdefault("cache", False)
 
         # for k, v in six.iteritems(kwargs):
         #     self.cv_params[k] = v
@@ -127,6 +128,9 @@ class MiplessCloudVolume:
     # def exists(self):
     #       s = Storage(self.path)
     #       return s.exists('info')
+
+    def set_param(self, key: str, value: Any):
+        self.cv_params[key] = value
 
     def fetch_info(self):
         print("Fetching info")
