@@ -18,6 +18,7 @@ class BroadcastJob(scheduling.Job):
         mip,
         decay_dist,
         blur_rate,
+        chunk_z,
     ):
         """
         Args:
@@ -34,6 +35,7 @@ class BroadcastJob(scheduling.Job):
         self.block_field = block_field
         self.stitching_fields = stitching_fields
         self.output_field = output_field
+        self.chunk_z = chunk_z
         self.chunk_xy = chunk_xy
         self.bcube = bcube
         self.pad = pad
@@ -45,7 +47,7 @@ class BroadcastJob(scheduling.Job):
 
     def task_generator(self):
         chunks = self.output_field.break_bcube_into_chunks(
-            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip
+            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=self.chunk_z, mip=self.mip
         )
 
         tasks = []
