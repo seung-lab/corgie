@@ -315,16 +315,20 @@ class VoteTask(scheduling.Task):
 
     def execute(self):
         fields = []
-        for z_offset, field in zip(self.z_offsets, self.input_fields):
+        priorities = []
+        for priority, (z_offset, field) in enumerate(zip(self.z_offsets, self.input_fields)):
             z = self.bcube.z_range()[0]
             bcube = self.bcube.reset_coords(
                 zs=z + z_offset, ze=z + z_offset + 1, in_place=False
             )
             fields.append(field.read(bcube, mip=self.mip))
+            priorities.append(torch.full_like(fields[-1][:,0,...], fill_value=10-priority))
         fields = torch.cat([f for f in fields]).field()
-        weights = fields.get_vote_weights(
-            softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
-        )
+        priorities = torch.cat(priorities)
+        # weights = fields.get_vote_weights(
+        #     softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
+        # )
+        weights = fields.get_priority_vote_weights(priorities=priorities, consensus_threshold=2)
         if self.weights_layer:
             self.weights_layer.write(data_tens=weights, bcube=self.bcube, mip=self.mip)
         voted_field = (fields * weights.unsqueeze(-3)).sum(dim=0, keepdim=True)
