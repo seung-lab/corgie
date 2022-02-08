@@ -228,8 +228,8 @@ class VoteJob(scheduling.Job):
         bcube,
         z_offsets,
         mip,
-        softmin_temp=None,
-        blur_sigma=1.0,
+        consensus_threshold=2.,
+        blur_sigma=2.0,
         weights_layer=None,
     ):
         self.input_fields = input_fields
@@ -238,7 +238,7 @@ class VoteJob(scheduling.Job):
         self.bcube = bcube
         self.z_offsets = z_offsets
         self.mip = mip
-        self.softmin_temp = softmin_temp
+        self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
         self.weights_layer = weights_layer
         super().__init__()
@@ -255,7 +255,7 @@ class VoteJob(scheduling.Job):
                 mip=self.mip,
                 bcube=chunk,
                 z_offsets=self.z_offsets,
-                softmin_temp=self.softmin_temp,
+                consensus_threshold=self.consensus_threshold,
                 blur_sigma=self.blur_sigma,
                 weights_layer=self.weights_layer,
             )
@@ -276,8 +276,8 @@ class VoteTask(scheduling.Task):
         mip,
         bcube,
         z_offsets,
-        softmin_temp,
-        blur_sigma=1.0,
+        consensus_threshold=2.,
+        blur_sigma=2.0,
         weights_layer=None,
     ):
         """Find median vector for set of locations in a set of fields
@@ -305,11 +305,7 @@ class VoteTask(scheduling.Task):
             self.input_fields = [self.input_fields[0]] * len(self.z_offsets)
         elif len(self.z_offsets) < len(self.input_fields):
             self.z_offsets = [self.z_offsets[0]] * len(self.input_fields)
-        if softmin_temp is None:
-            softmin_temp = compute_softmin_temp(
-                dist=1, weight=0.99, size=len(self.z_offsets)
-            )
-        self.softmin_temp = softmin_temp
+        self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
         self.weights_layer = weights_layer
 
@@ -322,16 +318,18 @@ class VoteTask(scheduling.Task):
                 zs=z + z_offset, ze=z + z_offset + 1, in_place=False
             )
             fields.append(field.read(bcube, mip=self.mip))
-            priorities.append(torch.full_like(fields[-1][:,0,...], fill_value=10-priority))
+            priorities.append(torch.full_like(fields[-1][:,0,...], fill_value=len(self.input_fields) -priority))
         fields = torch.cat([f for f in fields]).field()
         priorities = torch.cat(priorities)
         # weights = fields.get_vote_weights(
         #     softmin_temp=self.softmin_temp, blur_sigma=self.blur_sigma
         # )
-        weights = fields.get_priority_vote_weights(priorities=priorities, consensus_threshold=2)
         if self.weights_layer:
+            weights = fields.get_priority_vote_weights(priorities=priorities, consensus_threshold=2)
             self.weights_layer.write(data_tens=weights, bcube=self.bcube, mip=self.mip)
-        voted_field = (fields * weights.unsqueeze(-3)).sum(dim=0, keepdim=True)
+            voted_field = (fields * weights.unsqueeze(-3)).sum(dim=0, keepdim=True)
+        else:
+            voted_field = fields.priority_vote(priorities=priorities, consensus_threshold=self.consensus_threshold, blur_sigma=self.blur_sigma)
         self.output_field.write(data_tens=voted_field, bcube=self.bcube, mip=self.mip)
 
 
@@ -359,8 +357,8 @@ class VoteTask(scheduling.Task):
 @corgie_optgroup("Voting Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--z_offsets", multiple=True, type=int, default=[0])
-@corgie_option("--softmin_temp", nargs=1, type=float, default=None)
-@corgie_option("--blur_sigma", nargs=1, type=float, default=1.0)
+@corgie_option("--consensus_threshold", nargs=1, type=float, default=2.)
+@corgie_option("--blur_sigma", nargs=1, type=float, default=2.0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--mip", nargs=1, type=int, default=0)
 @corgie_optgroup("Data Region Specification")
@@ -376,7 +374,7 @@ def vote(
     mip,
     z_offsets,
     force_chunk_xy,
-    softmin_temp,
+    consensus_threshold,
     blur_sigma,
     start_coord,
     end_coord,
@@ -426,7 +424,7 @@ def vote(
         bcube=bcube,
         z_offsets=z_offsets,
         mip=mip,
-        softmin_temp=softmin_temp,
+        consensus_threshold=consensus_threshold,
         blur_sigma=blur_sigma,
         weights_layer=vote_weights,
     )
