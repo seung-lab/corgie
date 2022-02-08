@@ -24,7 +24,7 @@ from corgie.cli.copy import CopyLayerJob
 from corgie.cli.downsample import DownsampleJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.seethrough import SeethroughCompareJob
-from corgie.cli.vote import VoteOverZJob
+from corgie.cli.vote import VoteJob
 from corgie.cli.broadcast import BroadcastJob
 
 
@@ -379,12 +379,13 @@ def align(
                 block_bcube = bcube.reset_coords(
                     zs=stitch_block.start, ze=stitch_block.start + 1, in_place=False,
                 )
-                vote_stitch_job = VoteOverZJob(
-                    input_field=stitch_estimated_field,
+                z_offsets = [z - block_bcube.z_range()[0] for z in range(stitch_block.start, stitch_block.stop)]
+                vote_stitch_job = VoteJob(
+                    input_fields=[stitch_estimated_field],
                     output_field=stitch_corrected_field,
                     chunk_xy=chunk_xy,
                     bcube=block_bcube,
-                    z_list=range(stitch_block.start, stitch_block.stop),
+                    z_offsets=z_offsets,
                     mip=processor_mip[-1],
                 )
                 scheduler.register_job(

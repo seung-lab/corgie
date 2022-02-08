@@ -17,7 +17,7 @@ from corgie.argparsers import (
 
 from corgie.cli.render import RenderJob
 from corgie.cli.copy import CopyJob
-from corgie.cli.vote import VoteOverFieldsJob
+from corgie.cli.vote import VoteJob
 from corgie.cli.compute_field import ComputeFieldJob
 from corgie.cli.seethrough import SeethroughCompareJob
 
@@ -205,11 +205,12 @@ class AlignBlockJob(scheduling.Job):
                     chunk_xy = self.cf_method["chunk_xy"]
                     chunk_z = self.cf_method["chunk_z"]
                     mip = self.cf_method["processor_mip"][-1]
-                    vote_job = VoteOverFieldsJob(
+                    vote_job = VoteJob(
                         input_fields=self.estimated_fields,
                         output_field=self.final_field,
                         chunk_xy=chunk_xy,
                         bcube=bcube,
+                        z_offsets=[0],
                         mip=mip,
                         softmin_temp=self.softmin_temp,
                         blur_sigma=self.blur_sigma,
