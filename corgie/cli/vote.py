@@ -21,8 +21,9 @@ class VoteJob(scheduling.Job):
         bcube,
         z_offsets,
         mip,
-        consensus_threshold=2.,
-        blur_sigma=2.0,
+        consensus_threshold=3.,
+        blur_sigma=15.0,
+        kernel_size=32,
         weights_layer=None,
     ):
         self.input_fields = input_fields
@@ -33,6 +34,7 @@ class VoteJob(scheduling.Job):
         self.mip = mip
         self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
+        self.kernel_size = kernel_size
         self.weights_layer = weights_layer
         super().__init__()
 
@@ -50,6 +52,7 @@ class VoteJob(scheduling.Job):
                 z_offsets=self.z_offsets,
                 consensus_threshold=self.consensus_threshold,
                 blur_sigma=self.blur_sigma,
+                kernel_size=self.kernel_size,
                 weights_layer=self.weights_layer,
             )
             for chunk in chunks
@@ -69,8 +72,9 @@ class VoteTask(scheduling.Task):
         mip,
         bcube,
         z_offsets,
-        consensus_threshold=2.,
-        blur_sigma=2.0,
+        consensus_threshold=3.,
+        blur_sigma=15,
+        kernel_size=32,
         weights_layer=None,
     ):
         """Find median-like field with highest priority from a set of fields
@@ -103,6 +107,7 @@ class VoteTask(scheduling.Task):
             self.z_offsets = [self.z_offsets[0]] * len(self.input_fields)
         self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
+        self.kernel_size = kernel_size
         self.weights_layer = weights_layer
 
     def execute(self):
@@ -117,10 +122,10 @@ class VoteTask(scheduling.Task):
             priorities.append(torch.full_like(fields[-1][:,0,...], fill_value=len(self.input_fields) -priority))
         fields = torch.cat([f for f in fields]).field()
         priorities = torch.cat(priorities)
-        weights = fields.get_priority_vote_weights(priorities=priorities, consensus_threshold=2)
+        weights = fields.get_priority_vote_weights(priorities=priorities, consensus_threshold=self.consensus_threshold)
         if self.weights_layer:
             self.weights_layer.write(data_tens=weights, bcube=self.bcube, mip=self.mip)
-        voted_field = fields.smoothed_combination(weights=weights, blur_sigma=self.blur_sigma)
+        voted_field = fields.smoothed_combination(weights=weights, blur_sigma=self.blur_sigma, kernel_size=self.kernel_size)
         self.output_field.write(data_tens=voted_field, bcube=self.bcube, mip=self.mip)
 
 
@@ -148,8 +153,9 @@ class VoteTask(scheduling.Task):
 @corgie_optgroup("Voting Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--z_offsets", multiple=True, type=int, default=[0])
-@corgie_option("--consensus_threshold", nargs=1, type=float, default=2.)
-@corgie_option("--blur_sigma", nargs=1, type=float, default=2.0)
+@corgie_option("--consensus_threshold", nargs=1, type=float, default=3.)
+@corgie_option("--blur_sigma", nargs=1, type=float, default=15.0)
+@corgie_option("--kernel_size", nargs=1, type=int, default=32)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--mip", nargs=1, type=int, default=0)
 @corgie_optgroup("Data Region Specification")
@@ -167,6 +173,7 @@ def vote(
     force_chunk_xy,
     consensus_threshold,
     blur_sigma,
+    kernel_size,
     start_coord,
     end_coord,
     coord_mip,

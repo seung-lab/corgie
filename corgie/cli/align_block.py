@@ -38,8 +38,9 @@ class AlignBlockJob(scheduling.Job):
         backward=False,
         vote_dist=1,
         suffix=None,
-        consensus_threshold=2.,
-        blur_sigma=1.0,
+        consensus_threshold=3.,
+        blur_sigma=15,
+        kernel_size=32,
         use_starters=True,
     ):
         """Align block with and without voting
@@ -63,6 +64,7 @@ class AlignBlockJob(scheduling.Job):
 
         self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
+        self.kernel_size = kernel_size
 
         self.tgt_stack = deepcopy(self.dst_stack)
         field_dir = f"field{self.suffix}"
@@ -215,6 +217,7 @@ class AlignBlockJob(scheduling.Job):
                         mip=mip,
                         consensus_threshold=self.consensus_threshold,
                         blur_sigma=self.blur_sigma,
+                        kernel_size=self.kernel_size,
                     )
 
                     yield from vote_job.task_generator
