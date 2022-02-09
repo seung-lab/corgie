@@ -79,6 +79,10 @@ from corgie.cli.broadcast import BroadcastJob
     help="For each seethrough method, how many sections are allowed to be seenthrough. 0 or None means no limit.",
 )
 @corgie_option("--seethrough_spec_mip", nargs=1, type=int, default=None)
+@corgie_optgroup("Voting Specification")
+@corgie_option("--consensus_threshold", nargs=1, type=float, default=3.)
+@corgie_option("--blur_sigma", nargs=1, type=float, default=15.0)
+@corgie_option("--kernel_size", nargs=1, type=int, default=32)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
@@ -153,6 +157,9 @@ def align(
     block_size,
     stitch_size,
     vote_dist,
+    consensus_threshold,
+    blur_sigma,
+    kernel_size,
     blend_xy,
     force_chunk_xy,
     suffix,
@@ -326,6 +333,9 @@ def align(
                 copy_start=True,
                 use_starters=True,
                 backward=False,
+                consensus_threshold=consensus_threshold,
+                blur_sigma=blur_sigma,
+                kernel_size=kernel_size,
             )
             scheduler.register_job(
                 align_block_job_forv, job_name=f"Forward Align {block} {block_bcube}",
@@ -352,6 +362,9 @@ def align(
                 copy_start=False,
                 use_starters=False,
                 backward=False,
+                consensus_threshold=consensus_threshold,
+                blur_sigma=blur_sigma,
+                kernel_size=kernel_size,
             )
             scheduler.register_job(
                 align_block_job_forv,
@@ -387,6 +400,9 @@ def align(
                     bcube=block_bcube,
                     z_offsets=z_offsets,
                     mip=processor_mip[-1],
+                    consensus_threshold=consensus_threshold,
+                    blur_sigma=blur_sigma,
+                    kernel_size=kernel_size,
                 )
                 scheduler.register_job(
                     vote_stitch_job,
