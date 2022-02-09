@@ -38,7 +38,7 @@ class AlignBlockJob(scheduling.Job):
         backward=False,
         vote_dist=1,
         suffix=None,
-        softmin_temp=None,
+        consensus_threshold=2.,
         blur_sigma=1.0,
         use_starters=True,
     ):
@@ -61,7 +61,7 @@ class AlignBlockJob(scheduling.Job):
         self.vote_dist = vote_dist
         self.suffix = suffix
 
-        self.softmin_temp = softmin_temp
+        self.consensus_threshold = consensus_threshold
         self.blur_sigma = blur_sigma
 
         self.tgt_stack = deepcopy(self.dst_stack)
@@ -70,13 +70,14 @@ class AlignBlockJob(scheduling.Job):
             field_dir, layer_type="field", overwrite=True
         )
         self.estimated_fields = {}
+        self.z_offsets = range(1, self.vote_dist + 1)
 
         if self.backward:
             z_step = -1
         else:
             z_step = 1
 
-        for k in range(1, self.vote_dist + 1):
+        for k in self.z_offsets:
             offset = -k * z_step
             f = self.dst_stack.create_sublayer(
                 f"{field_dir}/{offset}", layer_type="field", overwrite=True
@@ -168,7 +169,7 @@ class AlignBlockJob(scheduling.Job):
             # SERIAL ALIGNMENT (w/ or w/o voting)
             else:
                 if self.vote_dist > 1:
-                    for k in range(1, self.vote_dist + 1):
+                    for k in self.z_offsets: 
                         offset = -k * z_step
                         corgie_logger.debug(f"Compute field {z+offset}<{z}")
                         compute_field_job = self.cf_method(
@@ -203,16 +204,16 @@ class AlignBlockJob(scheduling.Job):
                 if self.vote_dist > 1:
                     corgie_logger.debug(f"Vote {z}")
                     chunk_xy = self.cf_method["chunk_xy"]
-                    chunk_z = self.cf_method["chunk_z"]
                     mip = self.cf_method["processor_mip"][-1]
+                    ordered_fields = [self.estimated_fields[-k*z_step] for k in self.z_offsets]
                     vote_job = VoteJob(
-                        input_fields=self.estimated_fields,
+                        input_fields=ordered_fields,
                         output_field=self.final_field,
                         chunk_xy=chunk_xy,
                         bcube=bcube,
                         z_offsets=[0],
                         mip=mip,
-                        softmin_temp=self.softmin_temp,
+                        consensus_threshold=self.consensus_threshold,
                         blur_sigma=self.blur_sigma,
                     )
 
