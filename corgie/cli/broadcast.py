@@ -18,6 +18,7 @@ class BroadcastJob(scheduling.Job):
         mip,
         decay_dist,
         blur_rate,
+        chunk_z,
     ):
         """
         Args:
@@ -34,6 +35,7 @@ class BroadcastJob(scheduling.Job):
         self.block_field = block_field
         self.stitching_fields = stitching_fields
         self.output_field = output_field
+        self.chunk_z = chunk_z
         self.chunk_xy = chunk_xy
         self.bcube = bcube
         self.pad = pad
@@ -45,7 +47,7 @@ class BroadcastJob(scheduling.Job):
 
     def task_generator(self):
         chunks = self.output_field.break_bcube_into_chunks(
-            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=1, mip=self.mip
+            bcube=self.bcube, chunk_xy=self.chunk_xy, chunk_z=self.chunk_z, mip=self.mip
         )
 
         tasks = []
@@ -130,7 +132,7 @@ class BroadcastTask(scheduling.Task):
         """Compose set of stitching_fields, adjusted by distance, with block_field.
 
         Args:
-            block_field (Layer): most recent field, that last to be warped
+            block_field (Layer): most recent field, that is last to be warped
             stitching_fields ([Layers]): collection of fields at stitching interfaces,
                 which are assumed to alternate
             output_field (Layer)
@@ -157,6 +159,8 @@ class BroadcastTask(scheduling.Task):
 
     def execute(self):
         corgie_logger.debug(f"BroadcastTask, {self.bcube}")
+        # cache if we're broadcasting over multiple sections
+        use_cache = self.bcube.z_size() > 1
         input_fields = self.stitching_fields[::-1]
         if len(self.z_list) != len(input_fields):
             fmul = len(self.z_list) // len(input_fields)
@@ -165,14 +169,35 @@ class BroadcastTask(scheduling.Task):
             input_fields = fmul * input_fields + input_fields[:frem]
             input_fields = input_fields[::-1]
         input_fields += [self.block_field]
-        z_list = self.z_list + [self.bcube.z_range()[0]]
-        corgie_logger.debug(f"input_fields: {input_fields}")
-        corgie_logger.debug(f"z_list: {z_list}")
-        pbcube = self.bcube.uncrop(self.pad, self.mip)
-        corgie_logger.debug(f"pbcube: {pbcube}")
-        fields = PyramidDistanceFieldSet(
-            decay_dist=self.decay_dist, blur_rate=self.blur_rate, layers=input_fields
-        )
-        field = fields.read(bcube=pbcube, z_list=z_list, mip=self.mip)
-        cropped_field = helpers.crop(field, self.pad)
-        self.output_field.write(cropped_field, bcube=self.bcube, mip=self.mip)
+        field_cache_vals = {}
+        if use_cache:
+            for field in input_fields:
+                field_cache_vals[field] = field.get_param(key="cache")
+                field.cv.set_param(key="cache", value=True)
+        for z in range(*self.bcube.z_range()):
+            bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
+            z_list = self.z_list + [bcube.z_range()[0]]
+            corgie_logger.debug(f"input_fields: {input_fields}")
+            corgie_logger.debug(f"z_list: {z_list}")
+            pbcube = bcube.uncrop(self.pad, self.mip)
+            corgie_logger.debug(f"pbcube: {pbcube}")
+            fields = PyramidDistanceFieldSet(
+                decay_dist=self.decay_dist,
+                blur_rate=self.blur_rate,
+                layers=input_fields,
+            )
+            field = fields.read(bcube=pbcube, z_list=z_list, mip=self.mip)
+            cropped_field = helpers.crop(field, self.pad)
+            self.output_field.write(cropped_field, bcube=bcube, mip=self.mip)
+
+        if use_cache:
+            max_mip = PyramidDistanceFieldSet.get_max_mip(
+                mip=self.mip, dist=self.decay_dist, blur_rate=self.blur_rate
+            )
+            mips = range(self.mip, max_mip)
+            for layer in input_fields:
+                for mip in mips:
+                    layer.flush(mip)
+
+            for field in input_fields:
+                field.cv.set_param(key="cache", value=field_cache_vals[field])

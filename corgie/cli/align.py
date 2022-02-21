@@ -106,6 +106,7 @@ from corgie.cli.broadcast import BroadcastJob
     default=1,
     help="The number of previous sections for which fields will be estimated, then corrected by voting.",
 )
+@corgie_optgroup("Broadcast Specification")
 @corgie_option(
     "--decay_dist",
     nargs=1,
@@ -120,6 +121,8 @@ from corgie.cli.broadcast import BroadcastJob
     default=0.2,
     help="The increase in the size of downsample factor based on distance used in broadcasting a stitching field.",
 )
+@corgie_option("--broadcast_chunk_z", nargs=1, type=int, default=1)
+@corgie_optgroup("Restart Specification")
 @corgie_option(
     "--restart_stage",
     nargs=1,
@@ -161,6 +164,7 @@ def align(
     seethrough_spec_mip,
     decay_dist,
     blur_rate,
+    broadcast_chunk_z,
     restart_stage,
     restart_suffix,
 ):
@@ -305,8 +309,8 @@ def align(
     else:
         seethrough_method = None
 
-    #restart_stage = 4
-    #import pdb; pdb.set_trace()
+    # restart_stage = 4
+    # import pdb; pdb.set_trace()
     if restart_stage == 0:
         corgie_logger.debug("Aligning blocks...")
         for block in blocks:
@@ -404,9 +408,9 @@ def align(
                 field_to_downsample = stitch_corrected_field
             # Hack for fafb
             field_info = field_to_downsample.get_info()
-            for scale in field_info['scales']:
-                scale['chunk_sizes'][-1][-1] = 1
-                scale['encoding'] = 'raw'
+            for scale in field_info["scales"]:
+                scale["chunk_sizes"][-1][-1] = 1
+                scale["encoding"] = "raw"
             field_to_downsample.cv.store_info(field_info)
             field_to_downsample.cv.fetch_info()
             downsample_field_job = DownsampleJob(
@@ -465,6 +469,7 @@ def align(
                 stitching_fields=stitching_fields,
                 output_field=composed_field,
                 chunk_xy=chunk_xy,
+                chunk_z=broadcast_chunk_z,
                 bcube=block_bcube,
                 pad=pad,
                 z_list=z_list,
