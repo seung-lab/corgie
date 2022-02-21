@@ -129,6 +129,10 @@ class MiplessCloudVolume:
     #       s = Storage(self.path)
     #       return s.exists('info')
 
+    def get_param(self, key: str):
+        return self.cv_params[key]
+
+
     def set_param(self, key: str, value: Any):
         self.cv_params[key] = value
 
