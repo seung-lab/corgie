@@ -159,6 +159,8 @@ class BroadcastTask(scheduling.Task):
 
     def execute(self):
         corgie_logger.debug(f"BroadcastTask, {self.bcube}")
+        # cache if we're broadcasting over multiple sections
+        use_cache = self.bcube.z_size() > 1
         input_fields = self.stitching_fields[::-1]
         if len(self.z_list) != len(input_fields):
             fmul = len(self.z_list) // len(input_fields)
@@ -168,9 +170,10 @@ class BroadcastTask(scheduling.Task):
             input_fields = input_fields[::-1]
         input_fields += [self.block_field]
         field_cache_vals = {}
-        for field in input_fields:
-            field_cache_vals[field] = field.get_param(key="cache")
-            field.cv.set_param(key="cache", value=True)
+        if use_cache:
+            for field in input_fields:
+                field_cache_vals[field] = field.get_param(key="cache")
+                field.cv.set_param(key="cache", value=True)
         for z in range(*self.bcube.z_range()):
             bcube = self.bcube.reset_coords(zs=z, ze=z + 1, in_place=False)
             z_list = self.z_list + [bcube.z_range()[0]]
@@ -187,14 +190,14 @@ class BroadcastTask(scheduling.Task):
             cropped_field = helpers.crop(field, self.pad)
             self.output_field.write(cropped_field, bcube=bcube, mip=self.mip)
 
-        # This task can be used with caching
-        max_mip = PyramidDistanceFieldSet.get_max_mip(
-            mip=self.mip, dist=self.decay_dist, blur_rate=self.blur_rate
-        )
-        mips = range(self.mip, max_mip)
-        for layer in input_fields:
-            for mip in mips:
-                layer.flush(mip)
+        if use_cache:
+            max_mip = PyramidDistanceFieldSet.get_max_mip(
+                mip=self.mip, dist=self.decay_dist, blur_rate=self.blur_rate
+            )
+            mips = range(self.mip, max_mip)
+            for layer in input_fields:
+                for mip in mips:
+                    layer.flush(mip)
 
-        for field in input_fields:
-            field.cv.set_param(key="cache", value=field_cache_vals[field])
+            for field in input_fields:
+                field.cv.set_param(key="cache", value=field_cache_vals[field])
