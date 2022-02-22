@@ -26,6 +26,7 @@ from corgie.cli.fill_nearest import fill_nearest
 from corgie.cli.vote import vote
 from corgie.cli.combine_masks import combine_masks
 from corgie.cli.create_segmentation_masks import create_segmentation_masks
+from corgie.cli.multi_section_compare import multi_section_compare
 
 COMMAND_LIST = []
 COMMAND_LIST.append(downsample)
@@ -55,6 +56,7 @@ COMMAND_LIST.append(vote)
 COMMAND_LIST.append(compare_sections)
 COMMAND_LIST.append(combine_masks)
 COMMAND_LIST.append(create_segmentation_masks)
+COMMAND_LIST.append(multi_section_compare)
 
 
 def get_command_list():
