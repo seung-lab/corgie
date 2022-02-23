@@ -224,6 +224,7 @@ def vote(
         mip=mip,
         consensus_threshold=consensus_threshold,
         blur_sigma=blur_sigma,
+        kernel_size=kernel_size,
         weights_layer=vote_weights,
     )
     scheduler.register_job(
