@@ -371,7 +371,7 @@ def create_segmentation_masks(
             img_layer = dst_stack[layer_name]
             binarizer = {
                 "binarization": ["gt", similarity_threshold],
-                "cv_params": {"cache": True},
+                # "cv_params": {"cache": True},
             }
             layer_dict = {
                 "path": img_layer.path,
