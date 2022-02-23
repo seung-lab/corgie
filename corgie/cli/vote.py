@@ -354,7 +354,7 @@ class VoteTask(scheduling.Task):
 @corgie_option("--suffix", nargs=1, type=str, default=None)
 @corgie_optgroup("Voting Specification")
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
-@corgie_option("--z_offsets", multiple=True, type=int, default=0)
+@corgie_option("--z_offsets", multiple=True, type=int, default=[0])
 @corgie_option("--softmin_temp", nargs=1, type=float, default=None)
 @corgie_option("--blur_sigma", nargs=1, type=float, default=1.0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
