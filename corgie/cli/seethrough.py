@@ -1,4 +1,6 @@
 import click
+import torch
+import procspec
 
 from corgie import scheduling, helpers, stack
 
