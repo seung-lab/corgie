@@ -144,7 +144,7 @@ class MultiSectionCompareTask(scheduling.Task):
 @corgie_option("--pad", nargs=1, type=int, default=256)
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
-@corgie_option("--z_offsets", multiple=True, type=int, default=-1)
+@corgie_option("--z_offsets", multiple=True, type=int, default=[-1])
 @corgie_option("--processor_spec", nargs=1, type=str, required=True, multiple=False)
 @corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
 @corgie_optgroup("Data Region Specification")
