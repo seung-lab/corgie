@@ -201,6 +201,47 @@ def apply_processor(
     reference_key,
 ):
     scheduler = ctx.obj["scheduler"]
+    _apply_processor(
+        src_layer_spec=src_layer_spec,
+        dst_layer_spec=dst_layer_spec,
+        spec_path=spec_path,
+        processor_spec=processor_spec,
+        pad=pad,
+        crop=crop,
+        chunk_xy=chunk_xy,
+        start_coord=start_coord,
+        force_chunk_xy=force_chunk_xy,
+        processor_mip=processor_mip,
+        end_coord=end_coord,
+        coord_mip=coord_mip,
+        blend_xy=blend_xy,
+        chunk_z=chunk_z,
+        reference_key=reference_key,
+        scheduler=scheduler,
+    )
+
+
+def _apply_processor(
+    src_layer_spec,
+    dst_layer_spec,
+    spec_path,
+    processor_spec,
+    pad,
+    crop,
+    chunk_xy,
+    start_coord,
+    force_chunk_xy,
+    processor_mip,
+    end_coord,
+    coord_mip,
+    blend_xy,
+    chunk_z,
+    reference_key,
+    scheduler=None,
+):
+
+    if scheduler is None:
+        scheduler = scheduling.parse_executor_from_kwargs({})
 
     corgie_logger.debug("Setting up layers...")
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
