@@ -241,7 +241,14 @@ def _apply_processor(
 ):
 
     if scheduler is None:
-        scheduler = scheduling.parse_executor_from_kwargs({})
+        kwargs = {
+            'queue_name': None,
+            'sqs_queue_region': 'us-east-1',
+            'completion_queue_name': None,
+            'restart_from_checkpoint_file': None,
+            'command_name': 'apply-processor'
+        }
+        scheduler = scheduling.parse_executor_from_kwargs(kwargs)
 
     corgie_logger.debug("Setting up layers...")
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
