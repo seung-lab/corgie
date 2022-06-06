@@ -138,7 +138,7 @@ class RenderTask(scheduling.Task):
         # Produce and aggregate mask if there's a need to blackout all masks
         agg_mask = None
         if self.blackout_masks:
-            mask_layers = self.dst_stack.get_layers_of_type(["mask"])
+            mask_layers = self.src_stack.get_layers_of_type(["mask"])
             mask_layer_names = [l.name for l in mask_layers]
             for n, d in six.iteritems(src_data_dict):
                 if n in mask_layer_names:

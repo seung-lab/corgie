@@ -95,9 +95,14 @@ class AlignBlockJob(scheduling.Job):
             self.pixel_offset_layer = self.tgt_stack.create_unattached_sublayer(
                 f"pixel_offset{self.suffix}", layer_type="img", overwrite=True
             )
+            self.src_stack_without_garbage_mask = deepcopy(self.src_stack)
+            self.src_stack_without_garbage_mask.layers.pop('garbage', None)
+            self.tgt_stack.layers.pop('garbage', None)
+            self.dst_stack.layers.pop('garbage', None)
         else:
             self.seethrough_mask_layer = None
             self.pixel_offset_layer = None
+            self.src_stack_without_garbage_mask = self.src_stack
 
         super().__init__()
 
@@ -131,7 +136,7 @@ class AlignBlockJob(scheduling.Job):
             if (z == z_start) and self.copy_start:
                 corgie_logger.debug(f"Copy section {z}")
                 render_job = self.render_method(
-                    src_stack=self.src_stack,
+                    src_stack=self.src_stack_without_garbage_mask,
                     dst_stack=self.tgt_stack,
                     bcube=bcube,
                     mips=processor_and_seethrough_mips,
@@ -145,8 +150,8 @@ class AlignBlockJob(scheduling.Job):
                 corgie_logger.debug(f"Compute field vote starter {z_start}<{z}")
                 offset = z_start - z
                 compute_field_job = self.cf_method(
-                    src_stack=self.src_stack,
-                    tgt_stack=self.src_stack,
+                    src_stack=self.src_stack_without_garbage_mask,
+                    tgt_stack=self.src_stack_without_garbage_mask,
                     bcube=bcube,
                     tgt_z_offset=offset,
                     suffix=self.suffix,
@@ -175,7 +180,7 @@ class AlignBlockJob(scheduling.Job):
                         offset = -k * z_step
                         corgie_logger.debug(f"Compute field {z+offset}<{z}")
                         compute_field_job = self.cf_method(
-                            src_stack=self.src_stack,
+                            src_stack=self.src_stack_without_garbage_mask,
                             tgt_stack=self.tgt_stack,
                             bcube=bcube,
                             tgt_z_offset=offset,
@@ -190,7 +195,7 @@ class AlignBlockJob(scheduling.Job):
                     offset = -z_step
                     corgie_logger.debug(f"Compute final field field {z+offset}<{z}")
                     compute_field_job = self.cf_method(
-                        src_stack=self.src_stack,
+                        src_stack=self.src_stack_without_garbage_mask,
                         tgt_stack=self.tgt_stack,
                         bcube=bcube,
                         tgt_z_offset=offset,
