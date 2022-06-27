@@ -1,0 +1,28 @@
+FROM pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
+
+ADD . /opt/corgie
+WORKDIR /opt/corgie
+
+RUN apt-get update \
+  # Install dependencies
+  && apt-get install -y git build-essential wget curl vim
+RUN conda install -y \
+  # Common dependencies
+  numpy \
+  # CloudVolume/CloudFiles/TaskQueue dependencies
+  gevent orjson pathos boto3 google-cloud-storage \
+  zstandard tenacity brotli-python json5 \
+  pytest jsonschema markdown pbr \
+  # Corgie
+  click \
+  click-option-group \
+  scikit-image \
+  h5py \
+  opencv-python-headless \
+  -c pytorch -c conda-forge -c fastai \
+  && pip install --no-cache-dir -e . \
+  # Cleanup apt
+  && conda clean -afy \
+  && apt-get --purge autoremove -y build-essential \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
