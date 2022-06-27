@@ -28,6 +28,7 @@ class ApplyProcessorJob(scheduling.Job):
         chunk_z,
         processor_spec,
         processor_mip,
+        processor_mip_out,
         pad,
         crop,
         bcube,
@@ -44,10 +45,16 @@ class ApplyProcessorJob(scheduling.Job):
         self.bcube = bcube
         self.processor_spec = processor_spec
         self.processor_mip = processor_mip
+        self.processor_mip_out = processor_mip_out
+
+
         if isinstance(self.processor_spec, str):
             self.processor_spec = [self.processor_spec]
         if isinstance(self.processor_mip, int):
             self.processor_mip = [self.processor_mip]
+
+        if self.processor_mip_out is None or len(self.processor_mip_out) == 0:
+            self.processor_mip_out = self.processor_mip
 
         if len(self.processor_mip) != len(self.processor_spec):
             raise exceptions.CorgieException(
@@ -61,6 +68,7 @@ class ApplyProcessorJob(scheduling.Job):
         for i in range(len(self.processor_spec)):
             this_proc = self.processor_spec[i]
             this_proc_mip = self.processor_mip[i]
+            this_proc_mip_out = self.processor_mip_out[i]
             is_last_proc = i == len(self.processor_spec) - 1
 
             this_task = helpers.PartialSpecification(
@@ -69,6 +77,7 @@ class ApplyProcessorJob(scheduling.Job):
                 processor_spec=this_proc,
                 pad=self.pad,
                 crop=self.crop,
+                mip_in=this_proc_mip,
             )
 
             chunked_job = ChunkedJob(
@@ -77,7 +86,7 @@ class ApplyProcessorJob(scheduling.Job):
                 chunk_xy=self.chunk_xy,
                 chunk_z=self.chunk_z,
                 blend_xy=self.blend_xy,
-                mip=this_proc_mip,
+                mip=this_proc_mip_out,
                 bcube=self.bcube,
             )
 
@@ -112,7 +121,7 @@ class ApplyProcessorJob(scheduling.Job):
 
 
 class ApplyProcessorTask(scheduling.Task):
-    def __init__(self, processor_spec, src_stack, dst_layer, mip, pad, crop, bcube):
+    def __init__(self, processor_spec, src_stack, dst_layer, mip, pad, crop, bcube, mip_in):
         super().__init__()
         self.processor_spec = processor_spec
         self.src_stack = src_stack
@@ -121,20 +130,20 @@ class ApplyProcessorTask(scheduling.Task):
         self.pad = pad
         self.crop = crop
         self.bcube = bcube
+        self.mip_in = mip_in
 
     def execute(self):
-        src_bcube = self.bcube.uncrop(self.pad, self.mip)
+        src_bcube = self.bcube.uncrop(self.pad, self.mip_in)
 
         processor = procspec.parse_proc(spec_str=self.processor_spec)
 
         src_translation, src_data_dict = self.src_stack.read_data_dict(
-            src_bcube, mip=self.mip, stack_name="src"
+            src_bcube, mip=self.mip_in, stack_name="src"
         )
 
         processor_input = {**src_data_dict}
         result = processor(processor_input, output_key="output")
-
-        cropped_result = helpers.crop(result, self.crop)
+        cropped_result = helpers.crop(result, self.crop // (2**(self.mip - self.mip_in)))
         self.dst_layer.write(cropped_result, bcube=self.bcube, mip=self.mip)
 
 
@@ -177,6 +186,7 @@ class ApplyProcessorTask(scheduling.Task):
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option("--processor_spec", nargs=1, type=str, multiple=True, required=True)
 @corgie_option("--processor_mip", nargs=1, type=int, multiple=True, required=True)
+@corgie_option("--processor_mip_out", nargs=1, type=int, multiple=True, required=False)
 @corgie_optgroup("Data Region Specification")
 @corgie_option("--start_coord", nargs=1, type=str, required=True)
 @corgie_option("--end_coord", nargs=1, type=str, required=True)
@@ -194,6 +204,7 @@ def apply_processor(
     start_coord,
     force_chunk_xy,
     processor_mip,
+    processor_mip_out,
     end_coord,
     coord_mip,
     blend_xy,
@@ -245,6 +256,7 @@ def apply_processor(
                 crop=crop,
                 bcube=job_bcube,
                 processor_mip=processor_mip,
+                processor_mip_out=processor_mip_out,
             )
 
             # create scheduler and execute the job
@@ -263,6 +275,7 @@ def apply_processor(
             crop=crop,
             bcube=bcube,
             processor_mip=processor_mip,
+            processor_mip_out=processor_mip_out,
         )
 
         # create scheduler and execute the job
