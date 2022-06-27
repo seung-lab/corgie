@@ -52,6 +52,10 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_optgroup("Render Method Specification")
 # @corgie_option('--seethrough_masks',    nargs=1, type=bool, default=False)
 # @corgie_option('--seethrough_misalign', nargs=1, type=bool, default=False)
+@corgie_option('--align_blocks/--no_align_blocks', default=True)
+@corgie_option('--compute_stitch_fields/--no_compute_stitch_fields', default=True)
+@corgie_option('--compose_fields/--no_compose_fields', default=True)
+@corgie_option('--final_render/--no_final_render', default=True)
 @corgie_option("--render_pad", nargs=1, type=int, default=512)
 @corgie_option("--render_chunk_xy", nargs=1, type=int, default=1024)
 @corgie_optgroup("Compute Field Method Specification")
@@ -170,6 +174,10 @@ def align(
     blur_rate,
     restart_stage,
     restart_suffix,
+    align_blocks,
+    compute_stitch_fields,
+    compose_fields,
+    final_render,
 ):
 
     scheduler = ctx.obj["scheduler"]
@@ -185,6 +193,7 @@ def align(
         crop = pad
 
     corgie_logger.debug("Setting up layers...")
+
     # TODO: store stitching images in layer other than even & odd
     if vote_dist + stitch_size - 2 >= block_size:
         raise exceptions.CorgieException(
@@ -314,7 +323,7 @@ def align(
 
     #restart_stage = 4
     #import pdb; pdb.set_trace()
-    if restart_stage == 0:
+    if restart_stage == 0 and align_blocks:
         corgie_logger.debug("Aligning blocks...")
         for block in blocks:
             block_bcube = block.get_bcube(bcube)
@@ -344,7 +353,7 @@ def align(
         scheduler.execute_until_completion()
         corgie_logger.debug("Done!")
 
-    if restart_stage <= 1:
+    if restart_stage <= 1 and compute_stitch_fields:
         corgie_logger.debug("Aligning stitching blocks...")
         for stitch_block in stitch_blocks:
             block_bcube = stitch_block.get_bcube(bcube)
@@ -381,7 +390,7 @@ def align(
     odd_stack.create_sublayer(
         stitch_estimated_name, layer_type="field", overwrite=False,
     )
-    if restart_stage <= 2:
+    if restart_stage <= 2 and compose_fields:
         if stitch_size > 1:
             corgie_logger.debug("Voting over stitching blocks")
             stitch_corrected_field = dst_stack.create_sublayer(
@@ -456,7 +465,7 @@ def align(
         stitch_corrected_field = dst_stack.create_sublayer(
             stitch_corrected_name, layer_type="field", overwrite=False
         )
-    if restart_stage <= 3:
+    if restart_stage <= 3 and compose_fields:
         corgie_logger.debug("Stitching blocks...")
         for block, stitch_block in zip(blocks[1:], stitch_blocks):
             block_bcube = block.broadcastable().get_bcube(bcube)
@@ -512,7 +521,7 @@ def align(
             scheduler.execute_until_completion()
             corgie_logger.debug("Done!")
 
-    if restart_stage <= 4:
+    if restart_stage <= 4 and final_render:
         if len(blocks) == 1:
             block_bcube = blocks[0].get_bcube(bcube)
             render_job = RenderJob(

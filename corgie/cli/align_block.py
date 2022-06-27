@@ -171,7 +171,7 @@ class AlignBlockJob(scheduling.Job):
             # SERIAL ALIGNMENT (w/ or w/o voting)
             else:
                 if self.vote_dist > 1:
-                    for k in self.z_offsets: 
+                    for k in self.z_offsets:
                         offset = -k * z_step
                         corgie_logger.debug(f"Compute field {z+offset}<{z}")
                         compute_field_job = self.cf_method(
@@ -383,7 +383,7 @@ class AlignBlockJob(scheduling.Job):
 @corgie_option("--processor_spec", nargs=1, type=str, required=True, multiple=True)
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
-@corgie_option("--force_chunk_xy", is_flag=True)
+@corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
 @corgie_option("--pad", nargs=1, type=int, default=256)
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
@@ -439,7 +439,9 @@ def align_block(
     src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
     src_stack.folder = dst_folder
 
-    force_chunk_xy = chunk_xy if force_chunk_xy else None
+    if force_chunk_xy is None:
+        force_chunk_xy = chunk_xy
+
     dst_stack = stack.create_stack_from_reference(
         reference_stack=src_stack,
         folder=dst_folder,
