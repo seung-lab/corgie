@@ -1,5 +1,8 @@
 # COnnectomics Registration Generalizable Inference Engine (corgie)
 
+[![Documentation Status](https://readthedocs.org/projects/corgie/badge/?version=latest)](https://corgie.readthedocs.io/en/latest/?badge=latest)
+
+
 Welcome to corgie! corgie is a command line tool built for registration of very large 3D volumes.
 
 # Installation
