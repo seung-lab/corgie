@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="corgie",
-    version="0.1.0",
+    version="0.1.1",
     author="Sergiy Popovych",
     author_email="sergiy.popovich@gmail.com",
     description="Connectomics Registration General Inference Engine",

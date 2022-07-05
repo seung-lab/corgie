@@ -60,7 +60,7 @@ Markdown==3.3.4
 MarkupSafe==2.0.1
 matplotlib==3.4.2
 matplotlib-inline==0.1.2
-mazepa==0.1.4
+mazepa==0.1.5
 metroem
 modelhouse>=0.1.2
 multiprocess==0.70.12.2

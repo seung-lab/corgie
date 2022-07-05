@@ -11,7 +11,7 @@ WORKDIR /opt/corgie
 RUN apt-get update \
   # Install dependencies
   && apt-get install -y --no-install-recommends \
-      libgtk2.0-dev language-pack-en build-essential git \
+      libgtk2.0-dev language-pack-en build-essential git time \
   && pip install setuptools wheel \
   && pip install --no-cache-dir -r requirements-release.txt \
   && pip install -e . \
