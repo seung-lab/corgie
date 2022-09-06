@@ -11,12 +11,16 @@ The recommended installation method is `pip <https://pip.pypa.io/en/stable/>`_-i
 
    git clone git@github.com:seung-lab/corgie.git
    cd corgie
-   python setup.py develop
+   pip install -e .
+
+Installation typically takes under 10 minutes.
+
+To install the pinned versions of the package requirements, refer to the `requirements-release.txt`:
+
+.. code-block::
+   
    pip install -r requirements-release.txt
 
-All of the package requirements with pinned versions are listed in `requirements-release.txt`.
-
-The full installation typically takes under 10 minutes.
 
 You can find demo walkthrough with links to the demo dataset and expected output in the `Documentation <https://corgie.readthedocs.io/en/latest/>`_.
 
