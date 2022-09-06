@@ -7,7 +7,7 @@ Welcome to corgie! corgie is a toolkit for registration of large 3D volumes.
 
 The recommended installation method is `pip <https://pip.pypa.io/en/stable/>`_-installing into a `virtualenv <https://hynek.me/articles/virtualenv-lives/>`_:
 
-.. code-block:: console
+.. code-block:: 
 
    git clone git@github.com:seung-lab/corgie.git
    cd corgie
