@@ -12,7 +12,7 @@ The recommended installation method is `pip <https://pip.pypa.io/en/stable/>`_-i
    git clone git@github.com:seung-lab/corgie.git
    cd corgie
    python setup.py develop
-   python install -r requirements-release.txt
+   pip install -r requirements-release.txt
 
 All of the package requirements with pinned versions are listed in `requirements-release.txt`.
 
