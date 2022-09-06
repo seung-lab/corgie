@@ -61,7 +61,7 @@ MarkupSafe==2.0.1
 matplotlib==3.4.2
 matplotlib-inline==0.1.2
 mazepa==0.1.5
-metroem
+metroem==0.1.1
 modelhouse>=0.1.2
 multiprocess==0.70.12.2
 networkx==2.5.1
