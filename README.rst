@@ -9,10 +9,10 @@ The recommended installation method is `pip <https://pip.pypa.io/en/stable/>`_-i
 
 .. code-block:: console
 
-   $ git clone git@github.com:seung-lab/corgie.git
-   $ cd corgie
-   $ python setup.py develop
-   $ pip install -r requirements-release.txt
+   git clone git@github.com:seung-lab/corgie.git
+   cd corgie
+   python setup.py develop
+   pip install -r requirements-release.txt
 
 All of the package requirements with pinned versions are listed in `requirements-release.txt`.
 
