@@ -1,5 +1,5 @@
-Commands
-========
+Command Reference
+=================
 
 
 .. _copy command:

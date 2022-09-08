@@ -1,8 +1,1 @@
-docutils<0.16
-cloud-volume>=1.20.0
-artificery
-click
-sphinx-click
-kimimaro
-torchfields
 sphinxcontrib-spelling
