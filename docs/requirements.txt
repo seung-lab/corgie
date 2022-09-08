@@ -5,3 +5,4 @@ click
 sphinx-click
 kimimaro
 torchfields
+sphinxcontrib-spelling
