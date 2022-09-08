@@ -29,7 +29,6 @@ setuptools.setup(
       'procspec>=0.0.4',
       'metroem>=0.1.1',
       'idna>=2.5',
-      'google-auth>=1.11.0',
       'scikit-image>=0.18',
       'h5py>=3.3.0',
       'kimimaro>=2.1.0',
