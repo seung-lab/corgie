@@ -39,6 +39,7 @@ setuptools.setup(
       'sphinx-click>=3',
       'sphinxcontrib-spelling',
       'sphinx_rtd_theme',
+      'Sphinx > 5.0.0'
     ],
     entry_points={
         "console_scripts": [
