@@ -384,7 +384,7 @@ class AlignBlockJob(scheduling.Job):
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
-@corgie_option("--pad", nargs=1, type=int, default=256)
+@corgie_option("--pad", nargs=1, type=int, default=64)
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option("--processor_mip", "-m", nargs=1, type=int, required=True, multiple=True)
 @corgie_option("--copy_start/--no_copy_start", default=True)

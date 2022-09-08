@@ -223,7 +223,7 @@ class ComputeFieldTask(scheduling.Task):
         processor_input = {**src_data_dict, **tgt_data_dict}
 
         corgie_logger.debug(f"Compute field")
-        predicted_field = processor(processor_input, output_key="src_cf_field")
+        predicted_field = processor(processor_input, output_key="src_cf_field").field()
 
         predicted_field.x += tgt_drift.x
         predicted_field.y += tgt_drift.y

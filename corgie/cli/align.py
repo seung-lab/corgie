@@ -64,7 +64,7 @@ from corgie.cli.broadcast import BroadcastJob
 @corgie_option("--chunk_xy", "-c", nargs=1, type=int, default=1024)
 @corgie_option("--blend_xy", nargs=1, type=int, default=0)
 @corgie_option("--force_chunk_xy", nargs=1, type=int, default=None)
-@corgie_option("--pad", nargs=1, type=int, default=256)
+@corgie_option("--pad", nargs=1, type=int, default=64)
 @corgie_option("--crop", nargs=1, type=int, default=None)
 @corgie_option(
     "--seethrough_spec",
@@ -185,7 +185,7 @@ from corgie.cli.broadcast import BroadcastJob
     type=int,
     default=0,
     help="""
-    0: align blocks\n 
+    0: align blocks\n
     1: align overlapping regions of neighboring blocks\n
     2: vote over overlaps to produce stitch fields\n
     3: compose stitch fields with weight decay to produce final displacement fields\n
