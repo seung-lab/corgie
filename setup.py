@@ -34,11 +34,11 @@ setuptools.setup(
       'h5py>=3.3.0',
       'kimimaro>=2.1.0',
       'docutils<0.18',
-      'cloud-files>=2.0.1',
       'cloud-volume>=5.0.0',
       'sphinx-click>=3',
+      'sphinxcontrib-spelling',
       'sphinx_rtd_theme',
-      'Sphinx > 2.0.0',
+      'Sphinx > 5.0.0',
       'protobuf > 4.20'
     ],
     entry_points={
