@@ -17,7 +17,6 @@ cloud-volume==8.9.1
 compressed-segmentation==2.2.0
 compresso==3.0.0
 connected-components-3d==3.10.2
--e git+ssh://git@github.com/seung-lab/corgie.git@80a2279e5df1db84d210f3bb58aa89cc9a8b3db4#egg=corgie
 crc32c==2.3
 cryptography==37.0.4
 deflate==0.3.0
