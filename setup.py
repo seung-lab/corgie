@@ -15,7 +15,6 @@ setuptools.setup(
     include_package_data=True,
     package_data={'': ['*.py']},
     install_requires=[
-      'sphinx-click>=3',
       'torchfields',
       'torch>=1.8',
       'gevent>=21.1.2',
@@ -37,6 +36,9 @@ setuptools.setup(
       'docutils<0.18',
       'cloud-files>=2.0.1',
       'cloud-volume>=5.0.0',
+      'sphinx-click>=3',
+      'sphinxcontrib-spelling',
+      'sphinx_rtd_theme',
     ],
     entry_points={
         "console_scripts": [
