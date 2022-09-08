@@ -3,7 +3,7 @@
 
    corgie downsample \
    --src_layer_spec '{
-      "path": "gs://corgie/demo/my_first_stack/img/unaligned"
+      "path": "'${CORGIE_WALKTHROUGH_PATH}'/img/unaligned"
       }' \
    --mip_start 6 --mip_end 8 \
    --start_coord "150000, 150000, 17000" \

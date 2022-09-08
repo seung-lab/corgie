@@ -16,8 +16,6 @@ Welcome to corgie's documentation!
    processors
    commands
    distributed
-   gpu
-   devguide 
 
 
 

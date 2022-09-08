@@ -47,9 +47,10 @@ import sphinx_rtd_theme
 
 extensions = [
     "sphinx_rtd_theme",
-    "sphinx_click.ext"
+    "sphinx_click.ext",
+    'sphinxcontrib.spelling',
 ]
-
+spelling_word_list_filename='spelling_wordlist.txt'
 html_theme = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
