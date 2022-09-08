@@ -15,9 +15,9 @@ setuptools.setup(
     include_package_data=True,
     package_data={'': ['*.py']},
     install_requires=[
+      'cloud-volume>=5.0.0',
       'torchfields',
       'torch>=1.8',
-      'gevent>=21.1.2',
       'torchvision>=0.9.1',
       'numpy>=1.21',
       'six>=1.16',
@@ -33,12 +33,10 @@ setuptools.setup(
       'h5py>=3.3.0',
       'kimimaro>=2.1.0',
       'docutils<0.18',
-      'cloud-volume>=5.0.0',
       'sphinx-click>=3',
+      'Sphinx>5.0.0',
       'sphinxcontrib-spelling',
       'sphinx_rtd_theme',
-      'Sphinx > 5.0.0',
-      'protobuf > 4.20'
     ],
     entry_points={
         "console_scripts": [
