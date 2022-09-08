@@ -38,6 +38,7 @@ setuptools.setup(
       'cloud-volume>=5.0.0',
       'sphinx-click>=3',
       'sphinx_rtd_theme',
+      'Sphinx > 2.0.0',
       'protobuf > 4.20'
     ],
     entry_points={
