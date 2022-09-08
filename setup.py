@@ -26,7 +26,7 @@ setuptools.setup(
       'click>=7,<8',
       #'procspec>=0.0.4',
       #'metroem>=0.1.1',
-      'mazepa>=0.1.1',
+      #'mazepa>=0.1.1',
       #'modelhouse>=0.1.2',
       'idna>=2.5',
       'scikit-image>=0.18',

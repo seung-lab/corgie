@@ -1,7 +1,6 @@
 import json
 import click
 
-from corgie import scheduling
 from corgie.log import configure_logger
 from corgie.log import logger as corgie_logger
 
@@ -12,6 +11,7 @@ from corgie.cli.downsample import downsample
 
 from corgie.cli import get_command_list
 
+from corgie import scheduling
 
 class GroupWithCommandOptions(click.Group):
     """ Allow application of options to group with multi command """
