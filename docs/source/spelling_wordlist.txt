@@ -8,4 +8,12 @@ Backends
 datasets
 dataset
 Neuroglancer
-
+Encodings
+subtype
+pytorch
+alignments
+hyperparameters
+cuda
+non-normalized
+upsampled
+upsample
