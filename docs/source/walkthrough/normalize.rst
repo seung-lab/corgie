@@ -1,15 +1,20 @@
 Normalize
 ^^^^^^^^^
 
-The last step before we start the actual alignment is normalization of images. In many cases alignment procedures perform better when each input section has `0.0` mean and `1.0` variance. However, simply normalizing all of the pixels in each section for the specified bounding cube can produce biases result when part of the section is missing or defected. For this reason, we use several masks in the normalization commad:
+The last data preparation step involves normalizing the images.
+In many cases alignment procedures perform better when each input section has `0.0` mean and `1.0` variance. 
+It is best to perform normalization using statistics from the whole image, as normalizing each chunk independently can 
+produce significant border artifacts. This is one of the reasons of why normalization is performed during data preparation
+instead of being performed during alignment.
+
+Another note is that ideally image defects, plastic, and other non-tissue pixels would be excluted from statistics calculation.
+For this reason, ``corgie noramlize`` command takes in an arbitrary number of mask layers as input: 
 
 .. include:: normalize_command.rst
 
-The first mask that we use is the fold mask we copied from the reference stack. The second mask is obtained by applying ``binarization: ["eq", 0,0]`` to the source image, which will mask out all the ``0`` valued pixels in the image. 
 
-``normalize`` command works in two steps -- first it computes mean and variance for each section, and then it normalizes each section individually. The MIP at which mean and variance are calculated is specified by ``--stats_mip``. 
-
-We also speciffy the ``--suffix`` to be used for the resulting layer -- in this case, the normalized image will be written out to ``gs://corgie/demo/my_first_stack/img/img_normalized``.
+This command will normalize the the image layer, while excluding any pixels that belong to folds and excluding any ``0``-valued pixels, as indicated by a 
+mask obtained by applying ``binarization: ["eq", 0,0]`` to the source image.
 
 To learn more about ``normalize`` command, please refer to :ref:`normalize command documentation <normalize command>`.
 

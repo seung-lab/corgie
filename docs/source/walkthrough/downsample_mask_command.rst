@@ -2,7 +2,7 @@
 
    corgie downsample \
    --src_layer_spec '{
-      "path": "gs://corgie/demo/my_first_stack/mask/fold_mask",
+      "path": "'${CORGIE_WALKTHROUGH_PATH}'/mask/fold_mask",
       "type": "mask"
       }' \
    --mip_start 6 --mip_end 8 \

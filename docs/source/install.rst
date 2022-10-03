@@ -1,12 +1,18 @@
 Installation
 ============
 
-From source::
+The recommended installation method is `pip <https://pip.pypa.io/en/stable/>`_-installing into a `virtualenv <https://hynek.me/articles/virtualenv-lives/>`_:
 
-    git clone https://github.com/supersergiy/corgie.git
-    cd corgie
-    python setup.py install
+.. code-block:: 
 
-From `PyPi <https://pypi.org/project/corgie/>`_ directly::
+   git clone git@github.com:seung-lab/corgie.git
+   cd corgie
+   pip install -e .
 
-    pip install corgie
+Installation typically takes under 10 minutes.
+
+To install the pinned versions of the package requirements, refer to the `requirements-release.txt`:
+
+.. code-block::
+   
+   pip install -r requirements-release.txt

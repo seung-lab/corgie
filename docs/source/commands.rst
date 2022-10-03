@@ -1,5 +1,5 @@
-Commands
-========
+Command Reference
+=================
 
 
 .. _copy command:
@@ -59,7 +59,7 @@ align-block
 Example
 ^^^^^^^
 
-.. include:: walkthrough/align_block_command.rst
+.. include:: walkthrough/align_blockmatch.rst
 
 Documentation
 ^^^^^^^^^^^^^
@@ -69,5 +69,16 @@ Documentation
 
 
 
+
+.. _align command:
+
+align
+-----------
+
+Documentation
+^^^^^^^^^^^^^
+
+.. click:: corgie:align
+   :prog: corgie align
 
 
