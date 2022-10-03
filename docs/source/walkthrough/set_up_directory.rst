@@ -1,7 +1,7 @@
 Set Up Walkthrough Data Path 
 ============================
 
-All data read and written in this tutorial will be in the `Precomputed https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md`_ data format and using 
+All data read and written in this tutorial will be in the `Precomputed <https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md>`_ data format and using 
 `cloud-volume <https://github.com/seung-lab/cloud-volume>`_ library. 
 
 To run the walkthrough, you need to specify the storage location where the results and interpediary data will be written. 
