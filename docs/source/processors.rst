@@ -1,5 +1,5 @@
 Supplying Custom Image Pair Alignment Methods 
-============================================
+=============================================
 
 ``corgie`` allows users to plug in their own image pair alignment methods. 
 
@@ -37,14 +37,20 @@ The following is an example ``create.py`` for the ``blockmatch`` processing mode
     def create(**kwargs):
         return Model(**kwargs)
 
-In this case, the actuall block matching buisiness logic is contained in a separate ``blockmatch.py`` file.
+In this case, the actual block matching business logic is contained in a separate ``blockmatch.py`` file.
 Full contents of this processor folder are available at ``TODO``.
 
 Arguments to the ``create`` function call can be provided through ``--processor_spec``.
 ``corgie`` will use the constructed model to process image pair chunks, passed in as pytorch tensors as inputs to the ``forward`` call.
-Chunk data for all layers passed to the ``align`` or ``align-block`` will be passed in as keyword arguments to ``forward`` for both the soucre and the target image..
+Chunk data for all layers passed to the ``align`` or ``align-block`` will be passed in as keyword arguments to ``forward`` for both the source and the target image..
 Source layers are passed as ``src_{layer name}`` and target layers are passed as ``tgt_{layer name}``. It is recommended for the models to take a variable number of keyword arguments (``**kwars``), as the user might provide unanticipated layers. 
+
+The image pair alignment model is expected to return a saturated displacement field in `torchfields <https://github.com/seung-lab/torchfields>`_ format.
 
 
 .. note::
-Once loaded, the model will be cached on the worker. That means that if you update the contents of the model path, some of the workers might still use a stale version of the model which is saved in their cache. To prevent this issue, we recommend either restarting all of the workers when the contents of a model folder are updated, or not overwriting contents of existing models and creating new models instead.  
+
+    Once loaded, the model will be cached on the worker. That means that if you update the contents of the model path, 
+    some of the workers might still use a stale version of the model which is saved in their cache. To prevent this issue, 
+    we recommend either restarting all of the workers when the contents of a model folder are updated, or not overwriting 
+    contents of existing models and creating new models instead.  
