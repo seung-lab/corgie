@@ -14,8 +14,9 @@ Welcome to corgie's documentation!
    walkthrough
    layers
    processors
-   commands
+   encodings 
    distributed
+   commands
 
 
 
