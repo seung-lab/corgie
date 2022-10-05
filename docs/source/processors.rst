@@ -38,12 +38,12 @@ The following is an example ``create.py`` for the ``blockmatch`` processing mode
         return Model(**kwargs)
 
 In this case, the actual block matching business logic is contained in a separate ``blockmatch.py`` file.
-Full contents of this processor folder are available at ``TODO``.
+Full contents of this processor folder are available at ``gs://corgie_package/models/blockmatch``.
 
 Arguments to the ``create`` function call can be provided through ``--processor_spec``.
 ``corgie`` will use the constructed model to process image pair chunks, passed in as pytorch tensors as inputs to the ``forward`` call.
 Chunk data for all layers passed to the ``align`` or ``align-block`` will be passed in as keyword arguments to ``forward`` for both the source and the target image..
-Source layers are passed as ``src_{layer name}`` and target layers are passed as ``tgt_{layer name}``. It is recommended for the models to take a variable number of keyword arguments (``**kwars``), as the user might provide unanticipated layers. 
+Source layers are passed as ``src_{layer name}`` and target layers are passed as ``tgt_{layer name}``. It is recommended for the models to take a variable number of keyword arguments (``**kwargs``), as the user might provide unanticipated layers. 
 
 The image pair alignment model is expected to return a saturated displacement field in `torchfields <https://github.com/seung-lab/torchfields>`_ format.
 

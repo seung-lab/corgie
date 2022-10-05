@@ -8,7 +8,7 @@
 	--render_chunk_xy 2048 \
 	--chunk_xy 1024 \
 	--processor_spec '{"ApplyModel": {
-        "params": {"path": "gs://corgie_package/models/MICrONS_aligner_MIP7"}
+        "params": {"path": "gs://corgie_package/models/aligners/MICrONS_aligner_512_1024nm"}
     }}' \
 	--processor_mip 7 \
 	--device cuda \

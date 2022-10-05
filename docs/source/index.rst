@@ -14,9 +14,10 @@ Welcome to corgie's documentation!
    walkthrough
    layers
    processors
-   encodings 
+   available_models 
    distributed
    commands
+   citation 
 
 
 

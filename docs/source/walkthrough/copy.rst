@@ -15,7 +15,7 @@ Both start and end coordinates are provided as 3 comma separated integers -- X, 
 The start and end coordinates form a bounding cube, and all of the source data within this bounding cube will be copied over to the destination. 
 In this example, we will copy all the data in X range ``150000-200000``, Y range
 ``150000-200000``, and Z range ``17000-17010``. 
-``--mip`` specifies what MIP of the data will be copied, which in this case is 6. 
+``--mip`` specifies what `MIP level <https://en.wikipedia.org/wiki/Mipmap>`_ of the data will be copied, which in this case is 6. 
 
 .. note::
    By default, X and Y coordinates are considered to be at MIP0. You can change this default behavior by passing `--coord_mip` parameter
