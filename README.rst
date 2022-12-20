@@ -31,6 +31,7 @@ Project Information
 - **Source Code**: https://github.com/seung-lab/corgie
 - **Documentation**:  https://corgie.readthedocs.io/en/latest/
 - **Supported Python Versions**: 3.7, 3.8, 3.9
+- **Supported OS**: Ubuntu 18.04
 
 Citation
 ========
