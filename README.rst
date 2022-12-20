@@ -30,7 +30,7 @@ Project Information
 - **License**: `MIT <https://choosealicense.com/licenses/mit/>`_
 - **Source Code**: https://github.com/seung-lab/corgie
 - **Documentation**:  https://corgie.readthedocs.io/en/latest/
-- **Supported Python Versions**: 3.7, 7.8, 3.9
+- **Supported Python Versions**: 3.7, 3.8, 3.9
 
 Citation
 ========
