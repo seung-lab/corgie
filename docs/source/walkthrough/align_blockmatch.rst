@@ -10,7 +10,7 @@
    --suffix run_x0 \
    --processor_spec '{"ApplyModel": {
       "params": {
-         "path": "gs://corgie_package/models/aligners/blockmatch",
+         "path": "https://storage.googleapis.com/corgie_package/models/aligners/blockmatch",
          "tile_size": 128,
          "tile_step": 64,
          "max_disp": 48,
