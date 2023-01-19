@@ -27,7 +27,7 @@ setuptools.setup(
       'procspec>=0.0.4',
       'metroem>=0.1.1',
       'mazepa>=0.1.1',
-      'modelhouse>=0.1.2',
+      'modelhouse>=0.1.4',
       'idna>=2.5',
       'scikit-image>=0.18',
       'h5py>=3.3.0',

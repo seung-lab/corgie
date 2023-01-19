@@ -52,7 +52,7 @@ Markdown==3.4.1
 MarkupSafe==2.1.1
 mazepa==0.1.5
 metroem==0.1.1
-modelhouse==0.1.2
+modelhouse==0.1.4
 multiprocess==0.70.13
 networkx==2.8.6
 numpy==1.23.2
