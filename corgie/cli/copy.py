@@ -212,7 +212,7 @@ def copy(
     force_chunk_xy,
     force_chunk_z,
 ):
-
+    """Copy a bounding box including masks."""
     scheduler = ctx.obj["scheduler"]
     if suffix is None:
         suffix = ""
