@@ -152,6 +152,16 @@ def downsample(
     coord_mip,
     preserve_zeros
 ):
+    """Create additional image pyramid layers (mips).
+
+    Unlike with copy command, the destination path parameter
+    is not mandatory and will default to the source layer path.
+
+    Downsampling for the mask and the image layer have to be
+    done separately, because images are downsampled with average
+    pooling strategy while masks are downsampled with max pooling
+    strategy.
+    """
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
 
