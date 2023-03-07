@@ -163,6 +163,17 @@ def normalize(
     recompute_stats,
     mask_value,
 ):
+    """Normalize image statistics per a section (z-slice).
+
+    In many cases alignment procedures perform better when each
+    input section has 0.0 mean and 1.0 variance. Statistics are
+    collected from the whole section as as normalizing each chunk
+    independently can produce significant border artifacts.
+
+    To exclude non-tissue pixels such image defects and plastic
+    this command takes in an arbitrary number of mask layers as
+    input.
+    """
     if chunk_z != 1:
         raise NotImplemented(
             "Compute Statistics command currently only \
