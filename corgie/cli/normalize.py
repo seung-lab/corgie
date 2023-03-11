@@ -163,7 +163,7 @@ def normalize(
     recompute_stats,
     mask_value,
 ):
-    """Normalize image statistics per a section (z-slice).
+    """Normalize image stats per a section (z-slice).
 
     In many cases alignment procedures perform better when each
     input section has 0.0 mean and 1.0 variance. Statistics are
