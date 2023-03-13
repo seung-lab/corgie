@@ -271,6 +271,7 @@ def render(
     force_chunk_z,
     suffix,
 ):
+    """Render an alignment from a higher mip."""
     scheduler = ctx.obj["scheduler"]
 
     if suffix is None:
