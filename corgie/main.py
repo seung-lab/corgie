@@ -60,7 +60,7 @@ class GroupWithCommandOptions(click.Group):
 @click.option('-v', '--verbose', count=True, help='Turn on debug logging')
 @click.pass_context
 def cli(ctx, device, verbose, **kwargs):
-    """Tools for aligning 3D electron microscopy image stacks.
+    """Align large 3D electron microscopy image stacks.
 
     The core idea is to take a roughly aligned stack, find
     voxel correspondances using the SEAMLeSS neural network
