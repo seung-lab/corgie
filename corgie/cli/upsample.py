@@ -141,6 +141,13 @@ def upsample(
     end_coord,
     coord_mip,
 ):
+    """Upsample mip from existing images.
+
+    Note: This is different from "render"
+    as the above mip level is merely
+    interpolated and not generated from
+    unaligned data and vector fields.
+    """
     scheduler = ctx.obj["scheduler"]
     corgie_logger.debug("Setting up Source and Destination layers...")
 
