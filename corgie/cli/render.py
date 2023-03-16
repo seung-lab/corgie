@@ -248,9 +248,9 @@ class RenderTask(scheduling.Task):
 @corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--force_chunk_z", nargs=1, type=int)
 @corgie_optgroup("Data Region Specification")
-@corgie_option("--start_coord", nargs=1, type=str, required=True)
-@corgie_option("--end_coord", nargs=1, type=str, required=True)
-@corgie_option("--coord_mip", nargs=1, type=int, default=0)
+@corgie_option("--start_coord", nargs=1, type=str, help="Comma delimited triple specified in voxels by --coord_mip. e.g. 1000,200,55", required=True)
+@corgie_option("--end_coord", nargs=1, type=str, help="Comma delimited triple specified voxels by --coord_mip. e.g. 2000,500,70", required=True)
+@corgie_option("--coord_mip", nargs=1, type=int, help="Indicates mip start and end coordinates are specified in.", default=0)
 @click.option("--suffix", nargs=1, type=str, default=None)
 @click.pass_context
 def render(
