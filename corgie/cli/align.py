@@ -238,7 +238,7 @@ def align(
 ):
     """Partition blocks and run align-block on each.
 
-    Blocks are together using decayed transforms.
+    Blocks are merged together using decayed transforms.
     """
     scheduler = ctx.obj["scheduler"]
 
