@@ -271,7 +271,26 @@ def render(
     force_chunk_z,
     suffix,
 ):
-    """Render an alignment from a higher mip."""
+    """Render aligned from unaligned images.
+
+    Using unaligned images and a vector field,
+    generate aligned mip levels. The vector
+    field can be several mips downsampled 
+    compared with the mip level to be rendered,
+    the vectors will be upsampled bilinearly 
+    to match the render mip.
+
+    There are two kinds of vector fields:
+        - fixed_field (legacy)
+        - field
+
+    "fixed_field" vectors are downsampled but
+    not scaled according to resolution.
+
+    There are also two vector field formats:
+        - int16 (legacy, fixed point 2-bits)
+        - float32 (may be compressed with zfpc)
+    """
     scheduler = ctx.obj["scheduler"]
 
     if suffix is None:
