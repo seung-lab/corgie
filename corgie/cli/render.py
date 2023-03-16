@@ -281,14 +281,18 @@ def render(
     to match the render mip.
 
     There are two kinds of vector fields:
+
         - fixed_field (legacy)
+
         - field
 
     "fixed_field" vectors are downsampled but
     not scaled according to resolution.
 
-    There are also two vector field formats:
+    There are also two vector field formats: 
+
         - int16 (legacy, fixed point 2-bits)
+
         - float32 (may be compressed with zfpc)
     """
     scheduler = ctx.obj["scheduler"]
