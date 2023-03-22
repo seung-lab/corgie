@@ -127,7 +127,7 @@ class MiplessCloudVolume:
     #       return s.exists('info')
 
     def fetch_info(self):
-        print("Fetching info")
+        print("Fetching info for ", self.path)
         tmp_cv = self.obj(self.path, **self.cv_params)
         self.info = tmp_cv.info
 
