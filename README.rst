@@ -21,6 +21,7 @@ To install the pinned versions of the package requirements, refer to the `requir
    
    pip install -r requirements-release.txt
 
+Corgie uses boto3 under the hood, so follow boto3's instructions to get credentials installed for Amazon SQS.
 
 You can find demo walkthrough with links to the demo dataset and expected output in the `Documentation <https://corgie.readthedocs.io/en/latest/>`_.
 
