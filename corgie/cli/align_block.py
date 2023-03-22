@@ -426,6 +426,7 @@ def align_block(
     mode,
     chunk_z=1,
 ):
+    """Align a sequential range of sections (a block)."""
     scheduler = ctx.obj["scheduler"]
 
     if suffix is None:

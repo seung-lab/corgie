@@ -60,6 +60,34 @@ class GroupWithCommandOptions(click.Group):
 @click.option('-v', '--verbose', count=True, help='Turn on debug logging')
 @click.pass_context
 def cli(ctx, device, verbose, **kwargs):
+    """Align large 3D electron microscopy image stacks.
+
+    The core idea is to take a roughly aligned stack, find
+    voxel correspondances using the SEAMLeSS neural network
+    technique and perform smooth elastic deformation except
+    at image defects where non-smooth transforms are allowed.
+
+    Use the separate `corgie-worker` command to perform
+    distributed computation.
+
+    You can read more in the following papers:
+
+    1. Popovych, S., Macrina, T., Kemnitz, N., Castro, M., 
+    Nehoran, B., Jia, Z., Bae, J.A., Mitchell, E., Mu, 
+    S., Trautman, E.T., Saalfeld, S., Li, K., Seung, S., 
+    BioArXiv, 2022. Petascale pipeline for precise 
+    alignment of images from serial section electron 
+    microscopy. 
+    https://doi.org/10.1101/2022.03.25.485816
+
+    2. Mitchell, E., Keselj, S., Popovych, S., Buniatyan, D., 
+    Seung, H.S., arXiv 2019. Siamese Encoding and Alignment by 
+    Multiscale Learning with Self-Supervision.
+    http://arxiv.org/abs/1904.02643
+
+    BARK BARK! Corgie is licensed under Apache 2.0.
+    https://github.com/seung-lab/corgie/blob/main/LICENSE
+    """
     # This little hack let's us make group options look like
     # child command options, and at the same time only execute
     # the setup once

@@ -248,9 +248,9 @@ class RenderTask(scheduling.Task):
 @corgie_option("--force_chunk_xy", nargs=1, type=int)
 @corgie_option("--force_chunk_z", nargs=1, type=int)
 @corgie_optgroup("Data Region Specification")
-@corgie_option("--start_coord", nargs=1, type=str, required=True)
-@corgie_option("--end_coord", nargs=1, type=str, required=True)
-@corgie_option("--coord_mip", nargs=1, type=int, default=0)
+@corgie_option("--start_coord", nargs=1, type=str, help="Comma delimited triple specified in voxels by --coord_mip. e.g. 1000,200,55", required=True)
+@corgie_option("--end_coord", nargs=1, type=str, help="Comma delimited triple specified voxels by --coord_mip. e.g. 2000,500,70", required=True)
+@corgie_option("--coord_mip", nargs=1, type=int, help="Indicates mip start and end coordinates are specified in.", default=0)
 @click.option("--suffix", nargs=1, type=str, default=None)
 @click.pass_context
 def render(
@@ -271,6 +271,30 @@ def render(
     force_chunk_z,
     suffix,
 ):
+    """Render aligned from unaligned images.
+
+    Using unaligned images and a vector field,
+    generate aligned mip levels. The vector
+    field can be several mips downsampled 
+    compared with the mip level to be rendered,
+    the vectors will be upsampled bilinearly 
+    to match the render mip.
+
+    There are two kinds of vector fields:
+
+        - fixed_field (legacy)
+
+        - field
+
+    "fixed_field" vectors are downsampled but
+    not scaled according to resolution.
+
+    There are also two vector field formats: 
+
+        - int16 (legacy, fixed point 2-bits)
+
+        - float32 (may be compressed with zfpc)
+    """
     scheduler = ctx.obj["scheduler"]
 
     if suffix is None:

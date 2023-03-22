@@ -10,6 +10,12 @@ from corgie.log import configure_logger
 @scheduling.scheduler_click_options
 @click.option('-v', '--verbose', count=True, help='Turn on debug logging')
 def worker(lease_seconds, verbose, **kwargs):
+    """Processes corgie tasks from a task queue.
+    
+    You can run many of these in parallel from
+    any machine that can access the queue and
+    required data.
+    """
     configure_logger(verbose)
     executor = scheduling.parse_executor_from_kwargs(kwargs)
     executor.execute(lease_seconds=lease_seconds)

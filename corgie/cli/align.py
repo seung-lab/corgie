@@ -236,7 +236,10 @@ def align(
     compose_fields,
     final_render,
 ):
+    """Partition blocks and run align-block on each.
 
+    Blocks are merged together using decayed transforms.
+    """
     scheduler = ctx.obj["scheduler"]
 
     if suffix is None:
