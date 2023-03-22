@@ -67,6 +67,9 @@ def cli(ctx, device, verbose, **kwargs):
     technique and perform smooth elastic deformation except
     at image defects where non-smooth transforms are allowed.
 
+    Use the separate `corgie-worker` command to perform
+    distributed computation.
+
     You can read more in the following papers:
 
     1. Popovych, S., Macrina, T., Kemnitz, N., Castro, M., 
