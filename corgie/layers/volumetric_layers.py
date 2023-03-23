@@ -93,15 +93,11 @@ class VolumetricLayer(BaseLayerType):
         if chunk_z_step is None:
             chunk_z_step = chunk_z
 
-        sx = x_range[1] - x_range[0]
-        sy = y_range[1] - y_range[0]
-        sz = z_range[1] - z_range[0]
-
         # round up
-        xc = (sx + (chunk_xy_step - 1)) // chunk_xy_step
-        yc = (sy + (chunk_xy_step - 1)) // chunk_xy_step
-        zc = (sz + (chunk_z_step - 1)) // chunk_z_step
-        total = xc * yc * zc
+        sx = (x_range[1] - x_range[0] + (chunk_xy_step - 1)) // chunk_xy_step
+        sy = (y_range[1] - y_range[0] + (chunk_xy_step - 1)) // chunk_xy_step
+        sz = (z_range[1] - z_range[0] + (chunk_z_step - 1)) // chunk_z_step
+        total = sx * sy * sz
 
         class BCubeIterator:
             """
@@ -119,9 +115,9 @@ class VolumetricLayer(BaseLayerType):
                 for i in tqdm(range(self.start, self.end)):
                     xs, ys, zs = self.to_coord(i)
                     yield BoundingCube(
-                        xs, xs + chunk_xy, 
-                        ys, ys + chunk_xy, 
-                        zs, zs + chunk_z, 
+                        xs, xs + chunk_xy_step, 
+                        ys, ys + chunk_xy_step, 
+                        zs, zs + chunk_z_step, 
                         mip=mip
                     )
             def __getitem__(self, slc):
@@ -134,15 +130,14 @@ class VolumetricLayer(BaseLayerType):
                 if i >= len(self) or i < 0:
                     raise ValueError(f"{i} out of bounds.")
 
-                czxy = chunk_z_step * chunk_xy_step
-                z = i // czxy
-                x = (i - czxy * z) // chunk_xy_step
-                y = (i - chunk_xy_step * (x + chunk_z_step * z))
-
-                xs = x * chunk_xy_step
-                ys = y * chunk_xy_step
-                zs = z * chunk_z_step
-                return (xs, ys, zs)
+                sxy = sx * sy
+                z = i // sxy
+                y = (i - (z * sxy)) // sx
+                x = i - sx * (y + z * sy)
+                x = x_range[0] + x * chunk_xy_step
+                y = y_range[0] + y * chunk_xy_step
+                z = z_range[0] + chunk_z_step
+                return (x,y,z)
         
         itr = BCubeIterator()
         if flatten:
