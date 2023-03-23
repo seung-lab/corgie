@@ -1,6 +1,7 @@
 import copy
 
 import torch
+from tqdm import tqdm
 
 from corgie import constants, exceptions
 
@@ -92,25 +93,67 @@ class VolumetricLayer(BaseLayerType):
         if chunk_z_step is None:
             chunk_z_step = chunk_z
 
-        xy_chunks = []
-        flat_chunks = []
-        for zs in range(z_range[0], z_range[1], chunk_z_step):
-            xy_chunks.append([])
-            for xs in range(x_range[0], x_range[1], chunk_xy_step):
-                xy_chunks[-1].append([])
-                for ys in range(y_range[0], y_range[1], chunk_xy_step):
-                    chunk = BoundingCube(
-                        xs, xs + chunk_xy, ys, ys + chunk_xy, zs, zs + chunk_z, mip=mip
-                    )
+        sx = x_range[1] - x_range[0]
+        sy = y_range[1] - y_range[0]
+        sz = z_range[1] - z_range[0]
 
-                    xy_chunks[-1][-1].append(chunk)
-                    flat_chunks.append(chunk)
+        # round up
+        xc = (sx + (chunk_xy_step - 1)) // chunk_xy_step
+        yc = (sy + (chunk_xy_step - 1)) // chunk_xy_step
+        zc = (sz + (chunk_z_step - 1)) // chunk_z_step
+        total = xc * yc * zc
 
+        class BCubeIterator:
+            def __len__(self):
+                nonlocal total
+                return total
+            def __iter__(self):
+                with tqdm(total=len(self)) as pbar:
+                    for zs in range(z_range[0], z_range[1], chunk_z_step):
+                        for xs in range(x_range[0], x_range[1], chunk_xy_step):
+                            for ys in range(y_range[0], y_range[1], chunk_xy_step):
+                                yield BoundingCube(
+                                    xs, xs + chunk_xy, 
+                                    ys, ys + chunk_xy, 
+                                    zs, zs + chunk_z, 
+                                    mip=mip
+                                )
+            def __getitem__(self, i):
+                if i >= len(self) or i < 0:
+                    raise ValueError(f"{i} out of bounds.")
+
+                z = i // chunk_z_step
+                x = (i - chunk_z_step * z) // chunk_xy_step
+                y = (i - chunk_xy_step * (chunk_z_step * z - x))
+
+                xs = x * chunk_xy_step
+                ys = y * chunk_xy_step
+                zs = z * chunk_z_step
+                return BoundingCube(
+                    xs, xs + chunk_xy, 
+                    ys, ys + chunk_xy, 
+                    zs, zs + chunk_z, 
+                    mip=mip
+                )
+        
+        itr = BCubeIterator()
         if flatten:
-            return flat_chunks
-        else:
-            return xy_chunks
+            return itr
+        
+        all_chunks = [ [[]] * sx ] * sz
+        x,y,z = 0,0,0
+        for bc in itr:
+            if y >= sy:
+                y = 0
+                x += 1
+            if x >= sx:
+                x = 0
+                z += 1
 
+            all_chunks[z][x].append(bc)
+            y += 1
+
+        return all_chunks
 
 @register_layer_type("img")
 class ImgLayer(VolumetricLayer):
