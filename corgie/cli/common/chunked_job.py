@@ -299,5 +299,5 @@ class ChunkedJob(scheduling.Job):
         for z in range(len(xy_chunks)):
             for x in range(x_offset, len(xy_chunks[0]), 2):
                 for y in range(y_offset, len(xy_chunks[0][0]), 2):
-                    result.append(xy_chunks[z][x][y])
+                    result.append(xy_chunks[z][y][x])
         return result

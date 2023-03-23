@@ -146,15 +146,15 @@ class VolumetricLayer(BaseLayerType):
         all_chunks = [ [[]] * sx ] * sz
         x,y,z = 0,0,0
         for bc in itr:
-            if y >= sy:
-                y = 0
-                x += 1
             if x >= sx:
                 x = 0
+                y += 1
+            if y >= sy:
+                y = 0
                 z += 1
 
-            all_chunks[z][x].append(bc)
-            y += 1
+            all_chunks[z][y].append(bc)
+            x += 1
 
         return all_chunks
 
