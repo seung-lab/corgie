@@ -104,37 +104,45 @@ class VolumetricLayer(BaseLayerType):
         total = xc * yc * zc
 
         class BCubeIterator:
-            def __len__(self):
+            """
+            Computable list. Supports iterating and slice operations.
+            Useful for very large lists that would exhaust RAM.
+            Can be split using the slice operator to parallelize.
+            """
+            def __init__(self):
                 nonlocal total
-                return total
+                self.start = 0
+                self.end = total
+            def __len__(self):
+                return self.end - self.start
             def __iter__(self):
-                with tqdm(total=len(self)) as pbar:
-                    for zs in range(z_range[0], z_range[1], chunk_z_step):
-                        for xs in range(x_range[0], x_range[1], chunk_xy_step):
-                            for ys in range(y_range[0], y_range[1], chunk_xy_step):
-                                yield BoundingCube(
-                                    xs, xs + chunk_xy, 
-                                    ys, ys + chunk_xy, 
-                                    zs, zs + chunk_z, 
-                                    mip=mip
-                                )
-            def __getitem__(self, i):
+                for i in tqdm(range(self.start, self.end)):
+                    xs, ys, zs = self.to_coord(i)
+                    yield BoundingCube(
+                        xs, xs + chunk_xy, 
+                        ys, ys + chunk_xy, 
+                        zs, zs + chunk_z, 
+                        mip=mip
+                    )
+            def __getitem__(self, slc):
+                itr = copy.deepcopy(self)
+                itr.start = max(self.start + slc.start, self.start)
+                itr.end = min(self.start + slc.stop, self.end)
+                return itr
+            def to_coord(self, i):
+                """Convert an index into a grid coordinate."""
                 if i >= len(self) or i < 0:
                     raise ValueError(f"{i} out of bounds.")
 
-                z = i // chunk_z_step
-                x = (i - chunk_z_step * z) // chunk_xy_step
-                y = (i - chunk_xy_step * (chunk_z_step * z - x))
+                czxy = chunk_z_step * chunk_xy_step
+                z = i // czxy
+                x = (i - czxy * z) // chunk_xy_step
+                y = (i - chunk_xy_step * (x + chunk_z_step * z))
 
                 xs = x * chunk_xy_step
                 ys = y * chunk_xy_step
                 zs = z * chunk_z_step
-                return BoundingCube(
-                    xs, xs + chunk_xy, 
-                    ys, ys + chunk_xy, 
-                    zs, zs + chunk_z, 
-                    mip=mip
-                )
+                return (xs, ys, zs)
         
         itr = BCubeIterator()
         if flatten:
