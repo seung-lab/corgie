@@ -115,8 +115,8 @@ class VolumetricLayer(BaseLayerType):
                 return self.end - self.start
             def __iter__(self):
                 for i in tqdm(range(self.start, self.end)):
-                    xs, ys, zs = self.to_coord(i)
-                    yield self.get(xs,ys,xz)
+                    x, y, z = self.to_coord(i)
+                    yield self.get(x,y,z)
             def __getitem__(self, slc):
                 itr = copy.deepcopy(self)
                 itr.start = max(self.start + slc.start, self.start)
