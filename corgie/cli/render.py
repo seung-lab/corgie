@@ -61,7 +61,6 @@ class RenderJob(scheduling.Job):
                 chunk_xy=self.chunk_xy,
                 chunk_z=self.chunk_z,
                 mip=mip,
-                return_generator=True,
             )
 
             tasks = (
