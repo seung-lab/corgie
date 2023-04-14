@@ -140,7 +140,7 @@ class VolumetricLayer(BaseLayerType):
                 x = i - sx * (y + z * sy)
                 x = x_range[0] + x * chunk_xy_step
                 y = y_range[0] + y * chunk_xy_step
-                z = z_range[0] + chunk_z_step
+                z = z_range[0] + z * chunk_z_step
                 return (x,y,z)
         
         return BCubeIterator()
