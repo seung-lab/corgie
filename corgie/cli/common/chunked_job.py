@@ -208,7 +208,6 @@ class ChunkedJob(scheduling.Job):
             chunk_z=self.chunk_z,
             chunk_xy_step=self.chunk_xy - self.blend_xy,
             mip=self.mip,
-            flatten=False,
         )
 
         checkerb_layers, checkerb_chunk_sets = self._create_checkerboard(blend_chunks)
@@ -296,8 +295,8 @@ class ChunkedJob(scheduling.Job):
 
     def _get_checkerboard_chunks(self, xy_chunks, x_offset, y_offset):
         result = []
-        for z in range(len(xy_chunks)):
-            for x in range(x_offset, len(xy_chunks[0]), 2):
-                for y in range(y_offset, len(xy_chunks[0][0]), 2):
-                    result.append(xy_chunks[z][y][x])
+        for z in range(xy_chunks.sz):
+            for x in range(x_offset, xy_chunks.sx, 2):
+                for y in range(y_offset, xy_chunks.sy, 2):
+                    result.append(xy_chunks.get(x,y,z))
         return result

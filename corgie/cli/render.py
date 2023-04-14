@@ -118,7 +118,6 @@ class RenderTask(scheduling.Task):
 
     def execute(self):
         padded_bcube = self.bcube.uncrop(self.pad, self.mip)
-
         for f in self.additional_fields:
             # just in case the "additional" field is actually already a part of src_stack
             if f not in self.src_stack.layers.values():
