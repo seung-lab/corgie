@@ -13,7 +13,7 @@ charset-normalizer==2.1.1
 click==7.1.2
 click-option-group==0.5.3
 cloud-files==4.9.1
-cloud-volume==8.9.1
+cloud-volume==8.19.3
 compressed-segmentation==2.2.0
 compresso==3.0.0
 connected-components-3d==3.10.2
@@ -47,7 +47,7 @@ Jinja2==3.1.2
 jmespath==1.0.1
 json5==0.9.10
 jsonschema==4.15.0
-kimimaro==3.2.0
+kimimaro==3.3.0
 Markdown==3.4.1
 MarkupSafe==2.1.1
 mazepa==0.1.5
