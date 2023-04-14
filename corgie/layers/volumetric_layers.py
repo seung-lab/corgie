@@ -70,7 +70,6 @@ class VolumetricLayer(BaseLayerType):
         chunk_xy,
         chunk_z,
         mip,
-        flatten=True,
         chunk_xy_step=None,
         chunk_z_step=None,
         **kwargs
@@ -109,22 +108,27 @@ class VolumetricLayer(BaseLayerType):
                 nonlocal total
                 self.start = 0
                 self.end = total
+                self.sx = sx
+                self.sy = sy
+                self.sz = sz
             def __len__(self):
                 return self.end - self.start
             def __iter__(self):
                 for i in tqdm(range(self.start, self.end)):
                     xs, ys, zs = self.to_coord(i)
-                    yield BoundingCube(
-                        xs, xs + chunk_xy_step, 
-                        ys, ys + chunk_xy_step, 
-                        zs, zs + chunk_z_step, 
-                        mip=mip
-                    )
+                    yield self.get(xs,xy,xz)
             def __getitem__(self, slc):
                 itr = copy.deepcopy(self)
                 itr.start = max(self.start + slc.start, self.start)
                 itr.end = min(self.start + slc.stop, self.end)
                 return itr
+            def get(self, x, y, z):
+                return BoundingCube(
+                    x, x + chunk_xy_step, 
+                    y, y + chunk_xy_step, 
+                    z, z + chunk_z_step, 
+                    mip=mip
+                )
             def to_coord(self, i):
                 """Convert an index into a grid coordinate."""
                 if i >= len(self) or i < 0:
@@ -139,24 +143,7 @@ class VolumetricLayer(BaseLayerType):
                 z = z_range[0] + chunk_z_step
                 return (x,y,z)
         
-        itr = BCubeIterator()
-        if flatten:
-            return itr
-        
-        all_chunks = [ [[]] * sx ] * sz
-        x,y,z = 0,0,0
-        for bc in itr:
-            if x >= sx:
-                x = 0
-                y += 1
-            if y >= sy:
-                y = 0
-                z += 1
-
-            all_chunks[z][y].append(bc)
-            x += 1
-
-        return all_chunks
+        return BCubeIterator()
 
 @register_layer_type("img")
 class ImgLayer(VolumetricLayer):
