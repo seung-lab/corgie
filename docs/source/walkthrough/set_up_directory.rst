@@ -27,7 +27,6 @@ Make sure that the specified directory exists. Example setup can be done through
 Using Cloud Storage 
 -------------------
 To use cloud storage, set the ``CORGIE_WALKTHROUGH_PATH`` to the cloud path. Refer to `cloud-volume Documentation <https://github.com/seung-lab/cloud-volume>`_
-for path formatting options. ``cloud-volume`` datasets stored in cloud storage can be visualized in Neuroglancer the storage bucket is configured correctly.
-For cloud storage configuration details, please refer to `Neuroglancer Documentation <https://github.com/google/neuroglancer>`_
+for path formatting options. ``cloud-volume`` datasets stored in cloud storage can be visualized in Neuroglancer. The cloud storage bucket may need special configuration in order for the data to be accessible through Neuroglancer. Please refer to `Neuroglancer Documentation <https://github.com/google/neuroglancer>`_ for configuration details.
 
 
