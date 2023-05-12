@@ -20,6 +20,54 @@ def get_extra_interpolate_parameters():
         return {}
     return {"recompute_scale_factor": False}
 
+class BCubeIterator:
+    """
+    Computable list. Supports iterating and slice operations.
+    Useful for very large lists that would exhaust RAM.
+    Can be split using the slice operator to parallelize.
+    """
+    def __init__(self, sx, sy, sz, chunk_xy_step, chunk_z_step):
+        self.start = 0
+        self.end = (sx * sy * sz)
+        self.sx = sx
+        self.sy = sy
+        self.sz = sz
+        self.chunk_xy_step = chunk_xy_step
+        self.chunk_z_step = chunk_z_step
+    def __len__(self):
+        return self.end - self.start
+    def __iter__(self):
+        for i in tqdm(range(self.start, self.end)):
+            x, y, z = self.to_coord(i)
+            yield self.get(x,y,z)
+    def __getitem__(self, slc):
+        if isinstance(slc, int):
+            slc = slice(slc, slc + 1)
+        itr = copy.deepcopy(self)
+        itr.start = max(self.start + slc.start, self.start)
+        itr.end = min(self.start + slc.stop, self.end)
+        return itr
+    def get(self, x, y, z):
+        return BoundingCube(
+            x, x + self.chunk_xy_step, 
+            y, y + self.chunk_xy_step, 
+            z, z + self.chunk_z_step, 
+            mip=mip
+        )
+    def to_coord(self, i):
+        """Convert an index into a grid coordinate."""
+        if i >= len(self) or i < 0:
+            raise ValueError(f"{i} out of bounds.")
+
+        sxy = sx * sy
+        z = i // sxy
+        y = (i - (z * sxy)) // sx
+        x = i - sx * (y + z * sy)
+        x = x_range[0] + x * self.chunk_xy_step
+        y = y_range[0] + y * self.chunk_xy_step
+        z = z_range[0] + z * self.chunk_z_step
+        return (x,y,z)
+
 
 class VolumetricLayer(BaseLayerType):
     def __init__(self, data_mip=None, **kwargs):
@@ -96,54 +144,8 @@ class VolumetricLayer(BaseLayerType):
         sx = (x_range[1] - x_range[0] + (chunk_xy_step - 1)) // chunk_xy_step
         sy = (y_range[1] - y_range[0] + (chunk_xy_step - 1)) // chunk_xy_step
         sz = (z_range[1] - z_range[0] + (chunk_z_step - 1)) // chunk_z_step
-        total = sx * sy * sz
-
-        class BCubeIterator:
-            """
-            Computable list. Supports iterating and slice operations.
-            Useful for very large lists that would exhaust RAM.
-            Can be split using the slice operator to parallelize.
-            """
-            def __init__(self):
-                nonlocal total
-                self.start = 0
-                self.end = total
-                self.sx = sx
-                self.sy = sy
-                self.sz = sz
-            def __len__(self):
-                return self.end - self.start
-            def __iter__(self):
-                for i in tqdm(range(self.start, self.end)):
-                    x, y, z = self.to_coord(i)
-                    yield self.get(x,y,z)
-            def __getitem__(self, slc):
-                itr = copy.deepcopy(self)
-                itr.start = max(self.start + slc.start, self.start)
-                itr.end = min(self.start + slc.stop, self.end)
-                return itr
-            def get(self, x, y, z):
-                return BoundingCube(
-                    x, x + chunk_xy_step, 
-                    y, y + chunk_xy_step, 
-                    z, z + chunk_z_step, 
-                    mip=mip
-                )
-            def to_coord(self, i):
-                """Convert an index into a grid coordinate."""
-                if i >= len(self) or i < 0:
-                    raise ValueError(f"{i} out of bounds.")
-
-                sxy = sx * sy
-                z = i // sxy
-                y = (i - (z * sxy)) // sx
-                x = i - sx * (y + z * sy)
-                x = x_range[0] + x * chunk_xy_step
-                y = y_range[0] + y * chunk_xy_step
-                z = z_range[0] + z * chunk_z_step
-                return (x,y,z)
         
-        return BCubeIterator()
+        return BCubeIterator(sx, sy, sz, chunk_xy_step, chunk_z_step)
 
 @register_layer_type("img")
 class ImgLayer(VolumetricLayer):
