@@ -26,46 +26,58 @@ class BCubeIterator:
     Useful for very large lists that would exhaust RAM.
     Can be split using the slice operator to parallelize.
     """
-    def __init__(self, sx, sy, sz, chunk_xy_step, chunk_z_step):
+    def __init__(
+        self, 
+        x_range, y_range, z_range,
+        sx, sy, sz, 
+        chunk_xy_step, chunk_z_step,
+        mip
+    ):
         self.start = 0
         self.end = (sx * sy * sz)
         self.sx = sx
         self.sy = sy
         self.sz = sz
+        self.x_range = x_range
+        self.y_range = y_range
+        self.z_range = z_range
         self.chunk_xy_step = chunk_xy_step
         self.chunk_z_step = chunk_z_step
+        self.mip = mip
     def __len__(self):
         return self.end - self.start
     def __iter__(self):
         for i in tqdm(range(self.start, self.end)):
-            x, y, z = self.to_coord(i)
-            yield self.get(x,y,z)
+            yield self.get_i(i)
     def __getitem__(self, slc):
         if isinstance(slc, int):
-            slc = slice(slc, slc + 1)
+            return self.get_i(slc)
         itr = copy.deepcopy(self)
         itr.start = max(self.start + slc.start, self.start)
         itr.end = min(self.start + slc.stop, self.end)
         return itr
+    def get_i(self, i):
+        x, y, z = self.to_coord(i)
+        return self.get(x,y,z)
     def get(self, x, y, z):
         return BoundingCube(
             x, x + self.chunk_xy_step, 
             y, y + self.chunk_xy_step, 
             z, z + self.chunk_z_step, 
-            mip=mip
+            mip=self.mip
         )
     def to_coord(self, i):
         """Convert an index into a grid coordinate."""
         if i >= len(self) or i < 0:
             raise ValueError(f"{i} out of bounds.")
 
-        sxy = sx * sy
+        sxy = self.sx * self.sy
         z = i // sxy
-        y = (i - (z * sxy)) // sx
-        x = i - sx * (y + z * sy)
-        x = x_range[0] + x * self.chunk_xy_step
-        y = y_range[0] + y * self.chunk_xy_step
-        z = z_range[0] + z * self.chunk_z_step
+        y = (i - (z * sxy)) // self.sx
+        x = i - self.sx * (y + z * self.sy)
+        x = self.x_range[0] + x * self.chunk_xy_step
+        y = self.y_range[0] + y * self.chunk_xy_step
+        z = self.z_range[0] + z * self.chunk_z_step
         return (x,y,z)
 
 
@@ -145,7 +157,12 @@ class VolumetricLayer(BaseLayerType):
         sy = (y_range[1] - y_range[0] + (chunk_xy_step - 1)) // chunk_xy_step
         sz = (z_range[1] - z_range[0] + (chunk_z_step - 1)) // chunk_z_step
         
-        return BCubeIterator(sx, sy, sz, chunk_xy_step, chunk_z_step)
+        return BCubeIterator(
+            x_range, y_range, z_range,
+            sx, sy, sz, 
+            chunk_xy_step, chunk_z_step,
+            mip
+        )
 
 @register_layer_type("img")
 class ImgLayer(VolumetricLayer):
