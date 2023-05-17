@@ -83,21 +83,22 @@ def create_layer_from_dict(param_dict, reference=None, caller_name=None,
     return layer
 
 
-def create_stack_from_spec(spec_str_list, name, reference=None, readonly=False,
-        **kwargs):
-    stack = None
+def create_stack_from_spec(
+    spec_str_list, name, 
+    reference=None, readonly=False,
+    **kwargs
+):
+    stack = Stack(name=name)
     if len(spec_str_list) == 0:
-        if reference is not None:
-            stack = Stack(name=name)
-            for l in reference.get_layers():
-                l.readonly = readonly
-                stack.add_layer(l)
-    else:
-        stack = Stack(name=name)
-        layer_list = [create_layer_from_spec(s, readonly=readonly, **kwargs) \
-                for s in spec_str_list]
-        for l in layer_list:
+        if reference is None:
+            return None
+        for l in reference.get_layers():
+            l.readonly = readonly
             stack.add_layer(l)
+    else:
+        for spec in spec_str_list:
+            layer = create_layer_from_spec(spec, readonly=readonly, **kwargs)
+            stack.add_layer(layer)
 
     return stack
 
