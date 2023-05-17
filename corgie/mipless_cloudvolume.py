@@ -91,6 +91,7 @@ class MiplessCloudVolume:
         obj=CachedCloudVolume,
         default_chunk=(512, 512, 1),
         overwrite=False,
+        encoding=None,
         **kwargs
     ):
         self.path = path
@@ -118,6 +119,10 @@ class MiplessCloudVolume:
 
         self.info = None
         self.fetch_info()
+
+        if encoding:
+            for scale in self.info["scales"]:
+                scale["encoding"] = encoding
 
         if "info" in self.cv_params and overwrite:
             self.store_info()

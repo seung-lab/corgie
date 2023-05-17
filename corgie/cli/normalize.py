@@ -194,7 +194,11 @@ def normalize(
         force_chunk_xy = chunk_xy
 
     corgie_logger.debug("Setting up layers...")
-    src_stack = create_stack_from_spec(src_layer_spec, name="src", readonly=True)
+    src_stack = create_stack_from_spec(
+        src_layer_spec, 
+        name="src", 
+        readonly=True,
+    )
 
     dst_stack = stack.create_stack_from_reference(
         reference_stack=src_stack,
@@ -204,6 +208,7 @@ def normalize(
         readonly=False,
         suffix=suffix,
         overwrite=True,
+        encoding="raw", # Important to set, b/c png/jpeg not compatible
     )
 
     bcube = get_bcube_from_coords(start_coord, end_coord, coord_mip)
@@ -218,12 +223,16 @@ def normalize(
             name=f"mean_{l.name}{suffix}",
             path=os.path.join(dst_folder, f"mean_{l.name}{suffix}"),
             layer_type="section_value",
+            encoding="raw", # Important to set, b/c png/jpeg not compatible
+            overwrite=True,
         )
 
         var_layer = l.get_sublayer(
             name=f"var_{l.name}{suffix}",
             path=os.path.join(dst_folder, f"var_{l.name}{suffix}"),
             layer_type="section_value",
+            encoding="raw", # Important to set, b/c png/jpeg not compatible
+            overwrite=True,
         )
 
         if recompute_stats:
@@ -251,6 +260,7 @@ def normalize(
             dtype="float32",
             force_chunk_xy=force_chunk_xy,
             overwrite=True,
+            encoding="raw", # Important to set, b/c png/jpeg not compatible
         )
 
         result_report += f"Normalized {l} -> {dst_layer}\n"
