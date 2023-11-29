@@ -1,7 +1,7 @@
 corgie: COnnectomics Registration Generalizable Inference Engine
 ================================================================
 
-|Docs Badge| |Python Badge|
+|Docs Badge| |Python Badge| |Zenodo Badge|
 
 Welcome to corgie! corgie is a toolkit for registration of large 3D volumes.
 
@@ -57,3 +57,5 @@ Citation
 
 .. |Python Badge| image:: https://img.shields.io/badge/python-3.6+-blue.svg
 
+.. |Zenodo Badge| image:: https://zenodo.org/badge/351499801.svg
+  :target: https://zenodo.org/doi/10.5281/zenodo.10223437
