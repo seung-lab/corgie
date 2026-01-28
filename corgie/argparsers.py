@@ -25,7 +25,7 @@ LAYER_HELP_STR = """
    \t "name": str, DEFAULT -- same as layer type. """\
    """**Required** if given more than 1 layer of the same type ; \n
    \t "data_backend": str from {} ; \n
-   \t "layer_args": a dictionary with additional layer parameters,
+   \t "args": a dictionary with additional layer parameters,
    eg binarization scheme for masks data_mip_ranges, etc; \n
    Required keys: "path". \n
    """.format(get_layer_types(), get_data_backends())
